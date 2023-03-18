@@ -133,6 +133,9 @@ pcdet/ops/iou3d_nms/src/iou3d_cpu.cpp
 pcdet/ops/iou3d_nms/src/iou3d_nms.cpp
 pcdet/ops/iou3d_nms/src/iou3d_nms_api.cpp
 pcdet/ops/iou3d_nms/src/iou3d_nms_kernel.cu
+pcdet/ops/knn/__init__.py
+pcdet/ops/knn/knn.py
+pcdet/ops/knn/setup.py
 pcdet/ops/pointnet2/__init__.py
 pcdet/ops/pointnet2/pointnet2_batch/__init__.py
 pcdet/ops/pointnet2/pointnet2_batch/pointnet2_modules.py

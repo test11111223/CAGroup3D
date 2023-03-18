@@ -1,3 +1,7 @@
+Modified to compatable with Win 10 PC. See [readme_win10.md](./readme_win10.md) for details.
+
+____
+
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/cagroup3d-class-aware-grouping-for-3d-object/3d-object-detection-on-scannetv2)](https://paperswithcode.com/sota/3d-object-detection-on-scannetv2?p=cagroup3d-class-aware-grouping-for-3d-object)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/cagroup3d-class-aware-grouping-for-3d-object/3d-object-detection-on-sun-rgbd-val)](https://paperswithcode.com/sota/3d-object-detection-on-sun-rgbd-val?p=cagroup3d-class-aware-grouping-for-3d-object)
 
