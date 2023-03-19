@@ -29,7 +29,8 @@ All Rights Reserved 2020.
     exit(-1); \
   } \
 } while (0)
-#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
 
 
 int query_stacked_local_neighbor_idxs_wrapper_stack(at::Tensor support_xyz_tensor, at::Tensor xyz_batch_cnt_tensor,

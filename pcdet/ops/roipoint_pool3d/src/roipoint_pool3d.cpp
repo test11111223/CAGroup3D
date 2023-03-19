@@ -13,7 +13,8 @@
     exit(-1); \
   } \
 } while (0)
-#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
 
 
 void roipool3dLauncher(int batch_size, int pts_num, int boxes_num, int feature_in_len, int sampled_pts_num,

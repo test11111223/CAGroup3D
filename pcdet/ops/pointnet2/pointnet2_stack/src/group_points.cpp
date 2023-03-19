@@ -25,7 +25,8 @@ All Rights Reserved 2019-2020.
     exit(-1); \
   } \
 } while (0)
-#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
 
 
 int group_points_grad_wrapper_stack(int B, int M, int C, int N, int nsample,

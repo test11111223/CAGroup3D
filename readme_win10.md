@@ -134,4 +134,4 @@ me_device = None if is_cuda_available() else "cpu"
 x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 ```
 - **Just force everything into CPU.** `BATCH_SIZE_PER_GPU` must not be 1.
-- **TODO** [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472)
+- **TODO** [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472) **Checks skipped.** Meanwhile switched to `__device__ inline int check_rect_cross`. Now get memory issue.

@@ -29,7 +29,8 @@ All Rights Reserved 2019-2020.
     exit(-1); \
   } \
 } while (0)
-#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
 
 
 void three_nn_wrapper_stack(at::Tensor unknown_tensor, 

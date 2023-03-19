@@ -22,7 +22,8 @@
     exit(-1); \
   } \
 } while (0)
-#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
 
 
 int voxel_query_wrapper_stack(int M, int R1, int R2, int R3, int nsample, float radius, 

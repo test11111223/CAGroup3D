@@ -66,6 +66,13 @@ def boxes_iou3d_gpu(boxes_a, boxes_b):
     overlaps_bev = torch.cuda.FloatTensor(torch.Size((boxes_a.shape[0], boxes_b.shape[0]))).zero_()  # (N, M)
     iou3d_nms_cuda.boxes_overlap_bev_gpu(boxes_a.contiguous(), boxes_b.contiguous(), overlaps_bev)
 
+    # RuntimeError: CUDA error: an illegal memory access was encountered
+    #boxes_a_height_max.cpu()
+    #boxes_a_height_min.cpu()
+    #boxes_b_height_max.cpu()
+    #boxes_b_height_min.cpu()
+
+    # RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
     max_of_min = torch.max(boxes_a_height_min, boxes_b_height_min)
     min_of_max = torch.min(boxes_a_height_max, boxes_b_height_max)
     overlaps_h = torch.clamp(min_of_max - max_of_min, min=0)
