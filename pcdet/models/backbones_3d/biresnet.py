@@ -1,6 +1,7 @@
 import torch.nn as nn
 import MinkowskiEngine as ME
 from MinkowskiEngine.modules.resnet_block import BasicBlock, Bottleneck
+from MinkowskiEngineBackend._C import is_cuda_available
 
 BatchNorm = ME.MinkowskiBatchNorm
 bn_mom = 0.1
@@ -176,27 +177,28 @@ class DAPPM(nn.Module):
     def forward(self, x):
         x_list = []
         x_coords = x.C.float()
+        me_device = None if is_cuda_available() else "cpu"
 
         x_list.append(self.scale0(x))
 
         x_scale1_tensor = self.scale1(x).features_at_coordinates(x_coords)
         x_scale1 = ME.SparseTensor(features=x_scale1_tensor,
-            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key)
+            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key, device=me_device)
         x_list.append(self.process1(x_scale1+x_list[0]))
 
         x_scale2_tensor = self.scale2(x).features_at_coordinates(x_coords)
         x_scale2 = ME.SparseTensor(features=x_scale2_tensor,
-            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key)
+            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key, device=me_device)
         x_list.append(self.process2(x_scale2+x_list[1]))
 
         x_scale3_tensor = self.scale3(x).features_at_coordinates(x_coords)
         x_scale3 = ME.SparseTensor(features=x_scale3_tensor,
-            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key)
+            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key, device=me_device)
         x_list.append(self.process3(x_scale3+x_list[2]))
 
         x_scale4_tensor = self.scale4(x).features_at_coordinates(x_coords)
         x_scale4 = ME.SparseTensor(features=x_scale4_tensor,
-            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key)
+            coordinate_manager=x.coordinate_manager, coordinate_map_key=x.coordinate_map_key, device=me_device)
         x_list.append(self.process4(x_scale4+x_list[3]))
 
         out = self.compression(ME.cat(*x_list)) + self.shortcut(x)
@@ -359,6 +361,10 @@ class BiResNet(nn.Module):
         x = input_dict['sp_tensor']
         out_dict = dict()
         layers = []
+        me_device = None if is_cuda_available() else "cpu"
+
+        print(x)
+        print(x.shape)
 
         x = self.conv1(x) # 1
 
@@ -375,7 +381,7 @@ class BiResNet(nn.Module):
         x = x + self.down3(self.relu(x_)) # 8
         x_f = x_.F + self.compression3(self.relu(layers[2])).features_at_coordinates(x_.C.float())
         x_ = ME.SparseTensor(features=x_f,
-            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key)
+            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key, device=me_device)
 
         # TODO: test
         if self.augment:
@@ -388,12 +394,12 @@ class BiResNet(nn.Module):
         x = x + self.down4(self.relu(x_)) # 16
         x_f = x_.F + self.compression4(self.relu(layers[3])).features_at_coordinates(x_.C.float())
         x_ = ME.SparseTensor(features=x_f,
-            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key)
+            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key, device=me_device)
 
         x_ = self.layer5_(self.relu(x_)) # 4
         x_f = x_.F + self.spp(self.layer5(self.relu(x))).features_at_coordinates(x_.C.float())
         x_ = ME.SparseTensor(features=x_f,
-            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key)
+            coordinate_manager=x_.coordinate_manager, coordinate_map_key=x_.coordinate_map_key, device=me_device)
         x_ = self.out(x_) # 2
         # x_ = self.final_layer(x_)
 
@@ -408,11 +414,18 @@ class BiResNet(nn.Module):
 
 if __name__ == '__main__':
     import torch
+    import os
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+    #print(torch.cuda.is_available())
+    from MinkowskiEngineBackend._C import is_cuda_available
+    #print(is_cuda_available())
+    me_device = None if is_cuda_available() else "cpu"
     f = torch.rand(2048, 3).float().cuda()
     c = torch.randint(-64, 64, (2048, 4)).cuda().float()
     c[:,0] = 0
-    x = ME.SparseTensor(coordinates=c, features=f)
-    net = DualResNet(BasicBlock, [2, 2, 2, 2], out_channels=18, planes=32, spp_planes=128, head_planes=64, augment=True, in_channels=3).cuda()
-    y = net(x)
-    print(x.F.shape, y[1].F.shape, y[1].coordinate_map_key)
-    print(y[1].F[100:106])
+    x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
+    #net = BiResNet(BasicBlock, [2, 2, 2, 2], out_channels=18, planes=32, spp_planes=128, head_planes=64, augment=True, in_channels=3).cuda()
+    #y = net(x)
+    #print(x.F.shape, y[1].F.shape, y[1].coordinate_map_key)
+    #print(y[1].F[100:106])
+    print(x.F.shape)

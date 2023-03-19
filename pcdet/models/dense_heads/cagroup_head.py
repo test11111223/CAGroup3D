@@ -10,6 +10,7 @@ from pcdet.utils.loss_utils import CrossEntropy, SmoothL1Loss, FocalLoss
 from pcdet.utils.iou3d_loss import IoU3DLoss
 from pcdet.models.model_utils.cagroup_utils import reduce_mean, parse_params, Scale, bias_init_with_prob
 from pcdet.ops.iou3d_nms.iou3d_nms_utils import nms_gpu, nms_normal_gpu
+from MinkowskiEngineBackend._C import is_cuda_available
 
 class CAGroup3DHead(nn.Module):
     def __init__(self,
@@ -198,6 +199,7 @@ class CAGroup3DHead(nn.Module):
             nn.init.normal_(self.cls_individual_out[cls_id][0].kernel, std=.01)
 
     def forward(self, input_dict, return_middle_feature=True):
+        me_device = None if is_cuda_available() else "cpu"
         batch_size = input_dict['batch_size']
         outs = []
         out = input_dict['sp_tensor'] # semantic input from backbone3d
@@ -255,7 +257,7 @@ class CAGroup3DHead(nn.Module):
             voxel_coord = fuse_coordinates.clone().int()
             voxel_coord[:, 1:] = (fuse_coordinates[:, 1:] / voxel_size).floor()
             cls_individual_map = ME.SparseTensor(coordinates=voxel_coord, features=fuse_features,
-                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
             cls_individual_map = self.cls_individual_out[cls_id](cls_individual_map)
 
             # expand feature map
@@ -263,18 +265,18 @@ class CAGroup3DHead(nn.Module):
             expand = self.expand
             cls_voxel_coord[:, 1:] = (fuse_coordinates[:, 1:] / (voxel_size * expand)).floor()
             cls_individual_map_expand = ME.SparseTensor(coordinates=cls_voxel_coord, features=fuse_features,
-                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
             expand_coord = cls_individual_map_expand.C
             expand_coord[:, 1:] *= expand
             cls_individual_map_expand = ME.SparseTensor(coordinates=expand_coord, features=cls_individual_map_expand.F,
                                                         tensor_stride=expand,
-                                                        quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                        quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
 
             cls_individual_map_expand = self.cls_individual_expand_out[cls_id](cls_individual_map_expand)
             cls_individual_map_up = self.cls_individual_up[cls_id][0](cls_individual_map_expand, cls_individual_map.C)
             cls_individual_map_up = self.cls_individual_up[cls_id][1](cls_individual_map_up)
             cls_individual_map_out = ME.SparseTensor(coordinates=cls_individual_map.C,
-                                                    features=torch.cat([cls_individual_map_up.F, cls_individual_map.F], dim=-1))
+                                                    features=torch.cat([cls_individual_map_up.F, cls_individual_map.F], dim=-1), device=me_device)
             cls_individual_map_out = self.cls_individual_fuse[cls_id](cls_individual_map_out)
 
             prediction = self.forward_single(cls_individual_map_out, self.scales[cls_id], self.voxel_size_list[cls_id])
@@ -631,7 +633,7 @@ class CAGroup3DHead(nn.Module):
         prune_scores = ME.SparseTensor(
             scores.features.max(dim=1, keepdim=True).values,
             coordinate_map_key=scores.coordinate_map_key,
-            coordinate_manager=scores.coordinate_manager)
+            coordinate_manager=scores.coordinate_manager, device=me_device)
         reg_final = self.reg_conv(x).features
         reg_distance = torch.exp(scale(reg_final[:, :6]))
         reg_angle = reg_final[:, 6:]

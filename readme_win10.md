@@ -53,7 +53,19 @@ conda install -c conda-forge nomkl
 - MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
 
 ```sh
+pip install ninja open3d
 pip install MinkowskiEngine-0.5.4-cp310-cp310-win_amd64.whl
+```
+- If you choose WSL2: 
+
+```
+apt-get install -y python3-dev libopenblas-dev
+pip install \
+  -U git+https://github.com/NVIDIA/MinkowskiEngine@v0.5.4 \
+  --install-option="--blas=openblas" \
+  --install-option="--force_cuda" \
+  -v \
+  --no-deps
 ```
 
 - Now it is good to clone. Final check:
@@ -66,12 +78,6 @@ python -c "import MinkowskiEngine as ME; print(True)"
 ```
 
 ## After cloning this repo ##
-
-- First install some build tools:
-
-```sh
-pip install ninja open3d
-```
 
 - ~~Endless CPP debugging~~:
 
@@ -119,3 +125,10 @@ python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:
 - [THC/THC.h: No such file or directory](https://discuss.pytorch.org/t/question-about-thc-thc-h/147145/8). [Use ATen instead](https://github.com/sshaoshuai/Pointnet2.PyTorch/issues/34)
 - ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043) [Install gygwin](https://www.cs.odu.edu/~zeil/FAQs/Public/vscodeWithCygwin/) with additional packages: `gcc-core gcc-debuginfo gcc-objc gcc-g++ gdb make`: **Not effective, but can workaround by using WSL2**. Rewrite the code to remove `SharedArray` instead.
 - [The training backend is switched to GLOO](https://github.com/ray-project/ray_lightning/issues/13).
+- `os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"` is needed. ME can't be installed in WSL2.
+- **TODO** `convolution_cpu.cpp:61, assertion (!kernel.is_cuda()) failed. kernel must be CPU`: `ME.SparseTensor(device="cpu")` globally
+```
+from MinkowskiEngineBackend._C import is_cuda_available
+me_device = None if is_cuda_available() else "cpu"
+x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
+```
