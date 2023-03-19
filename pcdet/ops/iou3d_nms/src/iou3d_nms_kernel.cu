@@ -12,7 +12,7 @@ All Rights Reserved 2019-2020.
 
 // #define DEBUG
 const int THREADS_PER_BLOCK_NMS = sizeof(uint64_t) * 8;
-//const double EPS = 1e-9;
+constexpr double EPS = 1e-8;
 struct Point {
     float x, y;
     __device__ Point() {}
@@ -41,7 +41,7 @@ __device__ inline float cross(const Point &p1, const Point &p2, const Point &p0)
     return (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
 }
 
-__device__ inline int check_rect_cross(const Point &p1, const Point &p2, const Point &q1, const Point &q2){
+__device__ int check_rect_cross_cuda(const Point &p1, const Point &p2, const Point &q1, const Point &q2){
     int ret = min(p1.x,p2.x) <= max(q1.x,q2.x)  &&
               min(q1.x,q2.x) <= max(p1.x,p2.x) &&
               min(p1.y,p2.y) <= max(q1.y,q2.y) &&
@@ -63,7 +63,7 @@ __device__ inline int check_in_box2d(const float *box, const Point &p){
 
 __device__ inline int intersection(const Point &p1, const Point &p0, const Point &q1, const Point &q0, Point &ans){
     // fast exclusion
-    if (check_rect_cross(p0, p1, q0, q1) == 0) return 0;
+    if (check_rect_cross_cuda(p0, p1, q0, q1) == 0) return 0;
 
     // check cross standing
     float s1 = cross(q0, p1, p0);
@@ -75,7 +75,7 @@ __device__ inline int intersection(const Point &p1, const Point &p0, const Point
 
     // calculate intersection of two lines
     float s5 = cross(q1, p1, p0);
-    if(fabs(s5 - s1) > 1e-9){
+    if(fabs(s5 - s1) > EPS){
         ans.x = (s5 * q0.x - s1 * q1.x) / (s5 - s1);
         ans.y = (s5 * q0.y - s1 * q1.y) / (s5 - s1);
 
@@ -231,7 +231,7 @@ __device__ inline float iou_bev(const float *box_a, const float *box_b){
     float sa = box_a[3] * box_a[4];
     float sb = box_b[3] * box_b[4];
     float s_overlap = box_overlap(box_a, box_b);
-    return s_overlap / fmaxf(sa + sb - s_overlap, 1e-9);
+    return s_overlap / fmaxf(sa + sb - s_overlap, EPS);
 }
 
 __global__ void boxes_overlap_kernel(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_overlap){
@@ -322,7 +322,7 @@ __device__ inline float iou_normal(float const * const a, float const * const b)
     float interS = width * height;
     float Sa = a[3] * a[4];
     float Sb = b[3] * b[4];
-    return interS / fmaxf(Sa + Sb - interS, 1e-9);
+    return interS / fmaxf(Sa + Sb - interS, EPS);
 }
 
 

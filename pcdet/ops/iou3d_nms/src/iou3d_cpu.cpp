@@ -35,7 +35,7 @@ inline float max(float a, float b){
     return a > b ? a : b;
 }
 
-//const double EPS = 1e-9;
+constexpr double EPS = 1e-8;
 struct Point {
     float x, y;
     __device__ Point() {}
@@ -98,7 +98,7 @@ inline int intersection(const Point &p1, const Point &p0, const Point &q1, const
 
     // calculate intersection of two lines
     float s5 = cross(q1, p1, p0);
-    if(fabs(s5 - s1) > 1e-9){
+    if(fabs(s5 - s1) > EPS){
         ans.x = (s5 * q0.x - s1 * q1.x) / (s5 - s1);
         ans.y = (s5 * q0.y - s1 * q1.y) / (s5 - s1);
 
@@ -225,7 +225,7 @@ inline float iou_bev(const float *box_a, const float *box_b){
     float sa = box_a[3] * box_a[4];
     float sb = box_b[3] * box_b[4];
     float s_overlap = box_overlap(box_a, box_b);
-    return s_overlap / fmaxf(sa + sb - s_overlap, 1e-9);
+    return s_overlap / fmaxf(sa + sb - s_overlap, EPS);
 }
 
 

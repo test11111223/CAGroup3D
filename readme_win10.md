@@ -25,6 +25,8 @@
 
 - Prepare a python environment (python 3.10 + pytorch cu117 + spconv cu117) ~~copy manually in cmd~~:
 
+- [If there is some strange SSL error](https://github.com/conda/conda/issues/11795#issuecomment-1340010125)
+
 ```sh
 # python=3.11 will crash in application!
 conda create -n cagroup3d-env -c conda-forge scikit-learn python=3.10
@@ -53,14 +55,14 @@ pip install ninja open3d
 
 ```sh
 cd CAGroup3D
-python setup.py develop > t.txt
+python setup.py develop > logs/t.txt
 ```
 
 ## Rants ##
 
-- `EPS` is somewhat troublesome, just replace it with `1e-9`.
+- [error C2131 on EPS](https://github.com/open-mmlab/OpenPCDet/pull/1040)
 - [error C2131: expression did not evaluate to a constant](https://github.com/open-mmlab/OpenPCDet/issues/681#issuecomment-980000235)
 - [Still C2131:](https://blog.csdn.net/qq_39027296/article/details/104936998)
 - ['uint32_t' does not name a type](https://stackoverflow.com/questions/11069108/uint32-t-does-not-name-a-type): `#include <cstdint>`, and check `inline int check_rect_cross` in `iou3d_nms_kernel.cu`
 - [THC/THC.h: No such file or directory](https://discuss.pytorch.org/t/question-about-thc-thc-h/147145/8). [Use ATen instead](https://github.com/sshaoshuai/Pointnet2.PyTorch/issues/34)
-- **TODO** ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043)
+- **TODO** ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043) [Install gygwin](https://www.cs.odu.edu/~zeil/FAQs/Public/vscodeWithCygwin/) **with additional packages**: `gcc-core gcc-debuginfo gcc-objc gcc-g++ gdb make`
