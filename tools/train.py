@@ -63,7 +63,7 @@ def main():
         total_gpus = 1
     else:
         total_gpus, cfg.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
-            args.tcp_port, args.local_rank, backend='nccl'
+            args.tcp_port, args.local_rank, backend='gloo'
         )
         dist_train = True
 

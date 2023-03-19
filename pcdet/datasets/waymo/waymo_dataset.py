@@ -9,7 +9,6 @@ import copy
 import numpy as np
 import torch
 import multiprocessing
-import SharedArray
 import torch.distributed as dist
 from tqdm import tqdm
 from pathlib import Path
@@ -35,6 +34,8 @@ class WaymoDataset(DatasetTemplate):
         if self.use_shared_memory:
             self.shared_memory_file_limit = self.dataset_cfg.get('SHARED_MEMORY_FILE_LIMIT', 0x7FFFFFFF)
             self.load_data_to_shared_memory()
+
+        self.shm_infos = {}
 
     def set_split(self, split):
         super().__init__(
@@ -92,6 +93,8 @@ class WaymoDataset(DatasetTemplate):
 
             points = self.get_lidar(sequence_name, sample_idx)
             common_utils.sa_create(f"shm://{sa_key}", points)
+            print(f"shm://{sa_key}", points.shapes, points.dtype)
+            self.shm_infos[f"shm://{sa_key}"] = (points.shapes, points.dtype)
 
         dist.barrier()
         self.logger.info('Training data has been saved to shared memory')
@@ -112,7 +115,7 @@ class WaymoDataset(DatasetTemplate):
             if not os.path.exists(f"/dev/shm/{sa_key}"):
                 continue
 
-            SharedArray.delete(f"shm://{sa_key}")
+            common_utils.sa_delete(f"shm://{sa_key}")
 
         if num_gpus > 1:
             dist.barrier()
@@ -183,7 +186,14 @@ class WaymoDataset(DatasetTemplate):
 
         if self.use_shared_memory and index < self.shared_memory_file_limit:
             sa_key = f'{sequence_name}___{sample_idx}'
-            points = SharedArray.attach(f"shm://{sa_key}").copy()
+            if f"shm://{sa_key}" in self.shm_infos:
+                shm_shapes, shm_dtype = self.shm_infos[f"shm://{sa_key}"]
+                print("Hit", f"shm://{sa_key}", shm_shapes, shm_dtype)
+                points = common_utils.sa_attach(f"shm://{sa_key}", shm_shapes, shm_dtype).copy()
+            else:
+                points = self.get_lidar(sequence_name, sample_idx)
+                print("Miss", f"shm://{sa_key}", points.shapes, points.dtype)
+                self.shm_infos[f"shm://{sa_key}"] = (points.shapes, points.dtype)
         else:
             points = self.get_lidar(sequence_name, sample_idx)
 

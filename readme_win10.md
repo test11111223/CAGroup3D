@@ -1,19 +1,23 @@
 # Running CAGroup3D in Winodws 10 #
 
 - Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + 72GB DDR4 + 480GB SATA SSD
-- ~~WSL2 is not installed~~
+- ~~WSL2 is not installed because OS level troubleshooting is tedious.~~
 
 ## Objective ##
 
 - Train with **joint dataset** (ScanNetV2 + Sun RGB-D) and examine the result against both tasks.
 - Not focused on reproduce the data (obviously different CUDA version will produce different results)
-- ~~Some live demo~~
+- ~~Some live demo with Jupyter notebook~~
 
 ## Before cloning this repo ##
 
+- (Optional) [VSCode](https://code.visualstudio.com/) has terminal which is not easily interrupted and [notepad++](https://notepad-plus-plus.org/downloads/) for non ascii display.
+
 - Newest GPU driver. CUDA version in this repo will be 11.7. Use `nvidia-smi` to check.
 
-- Prepare at least 50GB of disk space! 
+- Python ~~3.8+~~ **3.10**. To switch [POSIX only library](https://pypi.org/project/SharedArray/) to [native implementation](https://docs.python.org/3/library/multiprocessing.shared_memory.html).
+
+- Prepare at least 40GB (dataset) + 20GB (programs) of disk space! 
 
 - Install [CUDA Toolkit 11.7](https://developer.nvidia.com/cuda-11-7-0-download-archive)
 
@@ -37,11 +41,29 @@ pip install spconv-cu117
 
 # Yea, need torch.
 pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+
+# Version conflict between numpy and numba
+conda install -c conda-forge numba
+
+# OMP: Error #15. Alternatively you can set a OS flag
+#os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+conda install -c conda-forge nomkl
 ```
 
-- Now it is good to clone.
+- MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
 
-- (Optional) [VSCode](https://code.visualstudio.com/) has terminal which is not easily interrupted and [notepad++](https://notepad-plus-plus.org/downloads/) for non ascii display.
+```sh
+pip install MinkowskiEngine-0.5.4-cp310-cp310-win_amd64.whl
+```
+
+- Now it is good to clone. Final check:
+
+```sh
+# Should return true
+python -c "import torch; print(torch.cuda.is_available())"
+# Should also return true
+python -c "import MinkowskiEngine as ME; print(True)"
+```
 
 ## After cloning this repo ##
 
@@ -55,7 +77,37 @@ pip install ninja open3d
 
 ```sh
 cd CAGroup3D
-python setup.py develop > logs/t.txt
+python setup.py develop > logs/pcdet.txt
+```
+
+- Additional CUDA ops looks fine:
+```sh
+# rotate iou ops
+cd CAGroup3D/pcdet/ops/rotated_iou/cuda_op
+python setup.py install > ../../../../logs/cuda_ops_rotated_iou.txt
+# knn ops
+cd ../../knn
+python setup.py develop > ../../../logs/cuda_ops_knn.txt
+```
+
+## Dataset ##
+
+- [Use prepared dataset.](https://drive.google.com/drive/folders/1sKvq4WBSEb4CWMdCTN6lCHLXnn3NwUv_). `DATA_PATH` could be in full path. Currently placed as `../data/scannet_data/ScanNetV2` and `../data/sunrgbd_data/sunrgbd`.
+
+## Training ##
+
+- Note that `CUDA_VISIBLE_DEVICES=ALL` (omitted) and `num_gpus=1` in this case. ~~Poor Windows PC.~~ 
+- Also the `CAGroup3D.yaml`: `BATCH_SIZE_PER_GPU: 1`
+- **And windows doesn't support bash in this case!** Also this time CMD / BAT files are not provided.
+- Notice the actual process arguement.
+
+```sh
+#--nproc_per_node=1
+#--rdzv_endpoint=localhost:7860
+#--extra_tag cagroup3d-win10-scannet 
+#>../logs/train_scannet.txt
+cd tools/
+python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 ```
 
 ## Rants ##
@@ -65,4 +117,5 @@ python setup.py develop > logs/t.txt
 - [Still C2131:](https://blog.csdn.net/qq_39027296/article/details/104936998)
 - ['uint32_t' does not name a type](https://stackoverflow.com/questions/11069108/uint32-t-does-not-name-a-type): `#include <cstdint>`, and check `inline int check_rect_cross` in `iou3d_nms_kernel.cu`
 - [THC/THC.h: No such file or directory](https://discuss.pytorch.org/t/question-about-thc-thc-h/147145/8). [Use ATen instead](https://github.com/sshaoshuai/Pointnet2.PyTorch/issues/34)
-- **TODO** ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043) [Install gygwin](https://www.cs.odu.edu/~zeil/FAQs/Public/vscodeWithCygwin/) **with additional packages**: `gcc-core gcc-debuginfo gcc-objc gcc-g++ gdb make`
+- ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043) [Install gygwin](https://www.cs.odu.edu/~zeil/FAQs/Public/vscodeWithCygwin/) with additional packages: `gcc-core gcc-debuginfo gcc-objc gcc-g++ gdb make`: **Not effective, but can workaround by using WSL2**. Rewrite the code to remove `SharedArray` instead.
+- [The training backend is switched to GLOO](https://github.com/ray-project/ray_lightning/issues/13).
