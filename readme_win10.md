@@ -112,8 +112,9 @@ python setup.py develop > ../../../logs/cuda_ops_knn.txt
 #--rdzv_endpoint=localhost:7860
 #--extra_tag cagroup3d-win10-scannet 
 #>../logs/train_scannet.txt
+#--launcher pytorch
 cd tools/
-python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
+python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 ```
 
 ## Rants ##
@@ -126,9 +127,11 @@ python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:
 - ["sys/mman.h": No such file or directory](https://github.com/open-mmlab/OpenPCDet/issues/1043) [Install gygwin](https://www.cs.odu.edu/~zeil/FAQs/Public/vscodeWithCygwin/) with additional packages: `gcc-core gcc-debuginfo gcc-objc gcc-g++ gdb make`: **Not effective, but can workaround by using WSL2**. Rewrite the code to remove `SharedArray` instead.
 - [The training backend is switched to GLOO](https://github.com/ray-project/ray_lightning/issues/13).
 - `os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"` is needed. ME can't be installed in WSL2.
-- **TODO** `convolution_cpu.cpp:61, assertion (!kernel.is_cuda()) failed. kernel must be CPU`: `ME.SparseTensor(device="cpu")` globally
+- `convolution_cpu.cpp:61, assertion (!kernel.is_cuda()) failed. kernel must be CPU`: `ME.SparseTensor(device="cpu")` globally
 ```
 from MinkowskiEngineBackend._C import is_cuda_available
 me_device = None if is_cuda_available() else "cpu"
 x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 ```
+- **Just force everything into CPU.** `BATCH_SIZE_PER_GPU` must not be 1.
+- **TODO** [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472)

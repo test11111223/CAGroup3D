@@ -16,6 +16,7 @@ from pcdet.models import build_network, model_fn_decorator
 from pcdet.utils import common_utils
 from train_utils.optimization import build_optimizer, build_scheduler
 from train_utils.train_utils import train_model
+from MinkowskiEngineBackend._C import is_cuda_available
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -59,6 +60,12 @@ def parse_config():
 
 def main():
     args, cfg = parse_config()
+
+    if not is_cuda_available():
+        print("The MinkowskiEngine was compiled with CPU_ONLY flag. Forcing entire process into CPU.")
+        args.launcher = 'none'
+        os.environ['CUDA_VISIBLE_DEVICES']=""
+
     if args.launcher == 'none':
         dist_train = False
         total_gpus = 1
@@ -118,7 +125,10 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=train_set)
     if args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    model.cuda()
+    if is_cuda_available():
+        model.cuda()
+    else:
+        model.cpu()
 
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 

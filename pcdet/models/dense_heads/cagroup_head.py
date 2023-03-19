@@ -630,6 +630,7 @@ class CAGroup3DHead(nn.Module):
         centerness = self.centerness_conv(x).features
         scores = self.cls_conv(x)
         cls_score = scores.features
+        me_device = None if is_cuda_available() else "cpu"
         prune_scores = ME.SparseTensor(
             scores.features.max(dim=1, keepdim=True).values,
             coordinate_map_key=scores.coordinate_map_key,

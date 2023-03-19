@@ -80,7 +80,7 @@ MODEL:
         EVAL_METRIC: scannet
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 1 # 4x4 or 8x2
+    BATCH_SIZE_PER_GPU: 16 # 4x4 or 8x2
     NUM_EPOCHS: 14
 
     OPTIMIZER: adamW 

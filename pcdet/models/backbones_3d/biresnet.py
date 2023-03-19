@@ -363,9 +363,6 @@ class BiResNet(nn.Module):
         layers = []
         me_device = None if is_cuda_available() else "cpu"
 
-        print(x)
-        print(x.shape)
-
         x = self.conv1(x) # 1
 
         x = self.layer1(x) # 2
