@@ -105,16 +105,11 @@ python setup.py develop > ../../../logs/cuda_ops_knn.txt
 - Note that `CUDA_VISIBLE_DEVICES=ALL` (omitted) and `num_gpus=1` in this case. ~~Poor Windows PC.~~ 
 - Also the `CAGroup3D.yaml`: `BATCH_SIZE_PER_GPU: 1`
 - **And windows doesn't support bash in this case!** Also this time CMD / BAT files are not provided.
-- Notice the actual process arguement.
+- Notice the actual process arguement. [Also switched to torchrun.](https://pytorch.org/docs/stable/elastic/run.html)
 
 ```sh
-#--nproc_per_node=1
-#--rdzv_endpoint=localhost:7860
-#--extra_tag cagroup3d-win10-scannet 
-#>../logs/train_scannet.txt
-#--launcher pytorch
 cd tools/
-python -m torch.distributed.launch --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 ```
 
 ## Rants ##
@@ -133,5 +128,6 @@ from MinkowskiEngineBackend._C import is_cuda_available
 me_device = None if is_cuda_available() else "cpu"
 x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 ```
-- **Just force everything into CPU.** `BATCH_SIZE_PER_GPU` must not be 1.
-- **TODO** [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472) **Checks skipped.** Meanwhile switched to `__device__ inline int check_rect_cross`. Now get memory issue.
+- ~~**Just force everything into CPU.**~~. `BATCH_SIZE_PER_GPU` must not be 1.
+- [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472) ~~**Checks skipped.**~~ Meanwhile switched to `__device__ inline int check_rect_cross`. ~~Now get memory issue.~~ Make sure **ME runs in CPU and pcdet runs in CUDA**.
+- **TODO** [CUDA error: device-side assert triggered.](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered)

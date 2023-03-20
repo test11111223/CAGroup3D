@@ -19,6 +19,7 @@ from train_utils.train_utils import train_model
 from MinkowskiEngineBackend._C import is_cuda_available
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
@@ -35,7 +36,7 @@ def parse_config():
     parser.add_argument('--sync_bn', action='store_true', default=False, help='whether to use sync bn')
     parser.add_argument('--fix_random_seed', action='store_true', default=False, help='')
     parser.add_argument('--ckpt_save_interval', type=int, default=1, help='number of training epochs')
-    parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
+    #parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
     parser.add_argument('--max_ckpt_save_num', type=int, default=30, help='max number of saved checkpoint')
     parser.add_argument('--merge_all_iters_to_one_epoch', action='store_true', default=False, help='')
     parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
@@ -51,6 +52,7 @@ def parse_config():
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.TAG = Path(args.cfg_file).stem
     cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[1:-1])  # remove 'cfgs' and 'xxxx.yaml'
+    cfg.LOCAL_RANK = int(os.environ["LOCAL_RANK"]) if "LOCAL_RANK" in os.environ else 0
 
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs, cfg)
@@ -61,17 +63,18 @@ def parse_config():
 def main():
     args, cfg = parse_config()
 
-    if not is_cuda_available():
-        print("The MinkowskiEngine was compiled with CPU_ONLY flag. Forcing entire process into CPU.")
-        args.launcher = 'none'
-        os.environ['CUDA_VISIBLE_DEVICES']=""
+    # ME = CPU, PCDET = CUDA
+    #if not is_cuda_available():
+    #    print("The MinkowskiEngine was compiled with CPU_ONLY flag. Forcing entire process into CPU.")
+    #    args.launcher = 'none'
+    #    os.environ['CUDA_VISIBLE_DEVICES']=""
 
     if args.launcher == 'none':
         dist_train = False
         total_gpus = 1
     else:
         total_gpus, cfg.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
-            args.tcp_port, args.local_rank, backend='gloo'
+            args.tcp_port, cfg.LOCAL_RANK, backend='gloo'
         )
         dist_train = True
 
@@ -125,6 +128,7 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=train_set)
     if args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    
     if is_cuda_available():
         model.cuda()
     else:
@@ -152,7 +156,8 @@ def main():
 
     model.train()  # before wrap to DistributedDataParallel to support fixed some parameters
     if dist_train:
-        model = nn.parallel.DistributedDataParallel(model, device_ids=[cfg.LOCAL_RANK % torch.cuda.device_count()])
+        dtdids = [cfg.LOCAL_RANK % torch.cuda.device_count()]
+        model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids)
     logger.info(model)
 
     lr_scheduler, lr_warmup_scheduler = build_scheduler(
@@ -164,9 +169,9 @@ def main():
     logger.info('**********************Start training %s/%s(%s)**********************'
                 % (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
     train_model(
-        model,
-        optimizer,
-        train_loader,
+        model=model,
+        optimizer=optimizer,
+        train_loader=train_loader,
         model_func=model_fn_decorator(),
         lr_scheduler=lr_scheduler,
         optim_cfg=cfg.OPTIMIZATION,

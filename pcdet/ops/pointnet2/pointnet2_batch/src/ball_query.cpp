@@ -26,8 +26,7 @@ All Rights Reserved 2018.
 		      exit(-1); \
 		    } \
 } while (0)
-//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
-#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
 
 
 int ball_query_wrapper_fast(int b, int n, int m, float radius, int nsample, 

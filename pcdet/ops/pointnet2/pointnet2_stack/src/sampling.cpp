@@ -19,8 +19,7 @@
     exit(-1); \
   } \
 } while (0)
-//#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
-#define CHECK_INPUT(x) CHECK_CONTIGUOUS(x)
+#define CHECK_INPUT(x) CHECK_CUDA(x);CHECK_CONTIGUOUS(x)
 
 
 int farthest_point_sampling_wrapper(int b, int n, int m,

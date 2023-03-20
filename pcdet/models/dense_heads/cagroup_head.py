@@ -414,8 +414,15 @@ class CAGroup3DHead(nn.Module):
                      pts_semantic_mask,
                      pts_instance_mask):
         with torch.no_grad():
-            semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes, gt_labels, self.n_classes)
-            centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes, gt_labels)
+            if is_cuda_available():
+                gt_bboxes1 = gt_bboxes
+                gt_labels1 = gt_labels
+            else:
+                gt_bboxes1 = gt_bboxes.clone().detach().cpu()
+                gt_labels1 = gt_labels.clone().detach().cpu()
+
+            semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes1, gt_labels1, self.n_classes)
+            centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes1, gt_labels1)
             # compute offset targets
             if self.with_yaw:
                 num_points = original_points.shape[0]
@@ -423,15 +430,15 @@ class CAGroup3DHead(nn.Module):
                 vote_target_masks = original_points.new_zeros([num_points],
                                                     dtype=torch.long)
                 vote_target_idx = original_points.new_zeros([num_points], dtype=torch.long)
-                box_indices_all = find_points_in_boxes(points=original_points, gt_bboxes=gt_bboxes) # n_points. n_boxes
-                for i in range(gt_labels.shape[0]):
+                box_indices_all = find_points_in_boxes(points=original_points, gt_bboxes=gt_bboxes1) # n_points. n_boxes
+                for i in range(gt_labels1.shape[0]):
                     box_indices = box_indices_all[:, i]
                     indices = torch.nonzero(
                         box_indices, as_tuple=False).squeeze(-1)
                     selected_points = original_points[indices]
                     vote_target_masks[indices] = 1
                     vote_targets_tmp = vote_targets[indices]
-                    votes = gt_bboxes[i, :3].unsqueeze(
+                    votes = gt_bboxes1[i, :3].unsqueeze(
                         0).to(selected_points.device) - selected_points[:, :3]
 
                     for j in range(self.gt_per_seed):
@@ -454,23 +461,29 @@ class CAGroup3DHead(nn.Module):
                 offset_masks.append(vote_target_masks)
             
             elif pts_semantic_mask is not None and pts_instance_mask is not None:
-                allp_offset_targets = torch.zeros_like(scene_points[:, :3])
-                allp_offset_masks = scene_points.new_zeros(len(scene_points))
+                #+1 for ME CPU?
+                #allp_offset_targets = torch.zeros_like(scene_points[:, :3])
+                #allp_offset_masks = scene_points.new_zeros(len(scene_points))
                 instance_center = scene_points.new_zeros((pts_instance_mask.max()+1, 3))
                 instance_match_gt_id = -scene_points.new_ones((pts_instance_mask.max()+1)).long()
-                for i in torch.unique(pts_instance_mask):
+                for i0 in torch.unique(pts_instance_mask):
+                    #IndexError: index 0 is out of bounds for dimension 0 with size 0
+                    #i = i0 if is_cuda_available() else i0 - 1 
+                    #CUDA error: device-side assert triggered.
+                    i = i0
                     indices = torch.nonzero(
-                        pts_instance_mask == i, as_tuple=False).squeeze(-1)
+                        pts_instance_mask == i, as_tuple=False).squeeze(-1)                    
                     if pts_semantic_mask[indices[0]] < self.n_classes:
                         selected_points = scene_points[indices, :3]
                         center = 0.5 * (
                                 selected_points.min(0)[0] + selected_points.max(0)[0])
-                        allp_offset_targets[indices, :] = center - selected_points
-                        allp_offset_masks[indices] = 1
+                        #allp_offset_targets[indices, :] = center - selected_points
+                        #allp_offset_masks[indices] = 1
+                        #CUDA error: device-side assert triggered.
                         match_gt_id = torch.argmin(torch.cdist(center.view(1, 1, 3),
-                                                                gt_bboxes[:, :3].unsqueeze(0).to(center.device)).view(-1))
+                                                                gt_bboxes1[:, :3].unsqueeze(0).to(center.device)).view(-1))
                         instance_match_gt_id[i] = match_gt_id
-                        instance_center[i] = gt_bboxes[:, :3][match_gt_id].to(center.device)
+                        instance_center[i] = gt_bboxes1[:, :3][match_gt_id].to(center.device)
                     else:
                         instance_center[i] = torch.ones_like(instance_center[i]) * (-10000.)
                         instance_match_gt_id[i] = -1
