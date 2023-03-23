@@ -109,7 +109,7 @@ python setup.py develop > ../../../logs/cuda_ops_knn.txt
 
 ```sh
 cd tools/
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
+CUDA_LAUNCH_BLOCKING=1 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 ```
 
 ## Rants ##
@@ -130,4 +130,5 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 ```
 - ~~**Just force everything into CPU.**~~. `BATCH_SIZE_PER_GPU` must not be 1.
 - [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472) ~~**Checks skipped.**~~ Meanwhile switched to `__device__ inline int check_rect_cross`. ~~Now get memory issue.~~ Make sure **ME runs in CPU and pcdet runs in CUDA**.
-- **TODO** [CUDA error: device-side assert triggered.](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered)
+- [CUDA error: device-side assert triggered.](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered) [hint1](https://discuss.pytorch.org/t/runtimeerror-cuda-error-device-side-assert-triggered-index-out-of-bounds-failed/87827) [hint2](https://github.com/IrvingMeng/MagFace/issues/15) [hint3](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered) [hint4](https://blog.csdn.net/li_jiaoyang/article/details/116047462) [hint5](https://discuss.pytorch.org/t/runtimeerror-cuda-error-device-side-assert-triggered/34213/8) **eval() on CPU.**
+- **TODO** Indexing error revealed. [e.g.](https://blog.csdn.net/qq_41375609/article/details/106227961)

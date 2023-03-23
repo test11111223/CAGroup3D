@@ -12,6 +12,11 @@ from pcdet.models.model_utils.cagroup_utils import reduce_mean, parse_params, Sc
 from pcdet.ops.iou3d_nms.iou3d_nms_utils import nms_gpu, nms_normal_gpu
 from MinkowskiEngineBackend._C import is_cuda_available
 
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
 class CAGroup3DHead(nn.Module):
     def __init__(self,
                  model_cfg,
@@ -417,9 +422,15 @@ class CAGroup3DHead(nn.Module):
             if is_cuda_available():
                 gt_bboxes1 = gt_bboxes
                 gt_labels1 = gt_labels
+                scene_points1 = scene_points
+                pts_semantic_mask1 = pts_semantic_mask
+                pts_instance_mask1 = pts_instance_mask
             else:
                 gt_bboxes1 = gt_bboxes.clone().detach().cpu()
                 gt_labels1 = gt_labels.clone().detach().cpu()
+                scene_points1 = scene_points.clone().detach().cpu()
+                pts_semantic_mask1 = pts_semantic_mask.clone().detach().cpu()
+                pts_instance_mask1 = pts_instance_mask.clone().detach().cpu()
 
             semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes1, gt_labels1, self.n_classes)
             centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes1, gt_labels1)
@@ -462,26 +473,62 @@ class CAGroup3DHead(nn.Module):
             
             elif pts_semantic_mask is not None and pts_instance_mask is not None:
                 #+1 for ME CPU?
-                #allp_offset_targets = torch.zeros_like(scene_points[:, :3])
-                #allp_offset_masks = scene_points.new_zeros(len(scene_points))
-                instance_center = scene_points.new_zeros((pts_instance_mask.max()+1, 3))
-                instance_match_gt_id = -scene_points.new_ones((pts_instance_mask.max()+1)).long()
-                for i0 in torch.unique(pts_instance_mask):
+                allp_offset_targets = torch.zeros_like(scene_points1[:, :3]).to(scene_points1.device)                   
+                allp_offset_masks = scene_points1.new_zeros(len(scene_points1) + 1).to(scene_points1.device)                   
+                instance_center = scene_points1.new_zeros((pts_instance_mask1.max() + 1, 3)).to(scene_points1.device)                   
+                instance_match_gt_id = -scene_points1.new_ones((pts_instance_mask1.max() + 1)).to(scene_points1.device).long()
+                for i in torch.unique(pts_instance_mask1):
                     #IndexError: index 0 is out of bounds for dimension 0 with size 0
                     #i = i0 if is_cuda_available() else i0 - 1 
                     #CUDA error: device-side assert triggered.
-                    i = i0
-                    indices = torch.nonzero(
-                        pts_instance_mask == i, as_tuple=False).squeeze(-1)                    
-                    if pts_semantic_mask[indices[0]] < self.n_classes:
-                        selected_points = scene_points[indices, :3]
-                        center = 0.5 * (
-                                selected_points.min(0)[0] + selected_points.max(0)[0])
-                        #allp_offset_targets[indices, :] = center - selected_points
-                        #allp_offset_masks[indices] = 1
-                        #CUDA error: device-side assert triggered.
-                        match_gt_id = torch.argmin(torch.cdist(center.view(1, 1, 3),
-                                                                gt_bboxes1[:, :3].unsqueeze(0).to(center.device)).view(-1))
+                    #i = i0
+                    indices1 = torch.nonzero(
+                        pts_instance_mask1 == i, as_tuple=False).squeeze(-1).to(scene_points1.device)                   
+                    if (pts_semantic_mask1[indices1[0]] < self.n_classes):
+                        #IndexError: index 99940 is out of bounds for dimension 0 with size 97088
+                        #Works (Up to 179152)
+                        indices = [a.long() for a in indices1 if a < len(scene_points1)]   
+                        
+                        if len(indices) == 0:
+                            instance_center[i] = torch.ones_like(instance_center[i]) * (-10000.)
+                            instance_match_gt_id[i] = -1              
+                            continue           
+
+                        selected_points = scene_points1[indices, :3]
+                        #selected_points: torch.Size([85, 3])
+                        #scene_points1: torch.Size([97088, 6])
+                        #raise AssertionError("{}, {}".format(selected_points.size(), scene_points1.size()))
+                        #IndexError: min(): Expected reduction dim 0 to have non-zero size.
+                        center = 0.5 * (selected_points.min(0)[0] + selected_points.max(0)[0])    
+                        # Device mismatch?
+                        #if is_cuda_available():
+                        #    center = center1
+                        #else:
+                        #    continue
+                            #center = center1.clone()
+                            #center = center.detach()
+                            #CUDA error: device-side assert triggered.
+                            #center = center.cpu()
+
+                        assert max(indices) < len(allp_offset_masks), "{}, {}, {}".format(allp_offset_targets.size(), allp_offset_masks.size(), indices)
+                        allp_offset_targets[indices, :] = center - selected_points
+                        #IndexError: too many indices for tensor of dimension 1
+                        allp_offset_masks[indices] = 1    
+                        tmp0 = center.view(1, 1, 3).to(center.device)
+                       
+                        #gt_bboxes1: torch.Size([27, 7])
+                        #Prevent cpu()
+                        tmp1 = gt_bboxes1[:, :3].unsqueeze(0).to(center.device)               
+
+                        #CUDA error: CUBLAS_STATUS_NOT_INITIALIZED when calling `cublasCreate(handle)`
+                        #tmp2 = tmp0.clone().detach().cpu()
+                        #tmp3 = tmp1.clone().detach().cpu()
+                      
+                        match_gt_id = torch.argmin(torch.cdist(tmp0,tmp1).view(-1))
+
+                        assert i < len(instance_match_gt_id), "instance_match_gt_id out of bound ({})".format(i)
+                        assert i < len(instance_center), "instance_center out of bound ({})".format(i)
+                        assert match_gt_id < len(gt_bboxes1[:, :3]), "match_gt_id out of bound ({})".format(match_gt_id)
                         instance_match_gt_id[i] = match_gt_id
                         instance_center[i] = gt_bboxes1[:, :3][match_gt_id].to(center.device)
                     else:
