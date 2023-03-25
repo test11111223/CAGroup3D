@@ -125,7 +125,8 @@ class WeightedSmoothL1Loss(nn.Module):
         diff = input - target
         # code-wise weighting
         if self.code_weights is not None:
-            diff = diff * self.code_weights.view(1, 1, -1)
+            cw = self.code_weights.clone().detach().to(diff.device)
+            diff = diff * cw.view(1, 1, -1)
 
         loss = self.smooth_l1_loss(diff, self.beta)
 
@@ -167,7 +168,8 @@ class WeightedL1Loss(nn.Module):
         diff = input - target
         # code-wise weighting
         if self.code_weights is not None:
-            diff = diff * self.code_weights.view(1, 1, -1)
+            cw = self.code_weights.clone().detach().to(diff.device)
+            diff = diff * cw.view(1, 1, -1)
 
         loss = torch.abs(diff)
 

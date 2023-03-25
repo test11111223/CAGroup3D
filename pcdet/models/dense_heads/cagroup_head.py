@@ -419,18 +419,21 @@ class CAGroup3DHead(nn.Module):
                      pts_semantic_mask,
                      pts_instance_mask):
         with torch.no_grad():
+            original_points_knn = original_points.clone().detach().to(scene_points.device)
             if is_cuda_available():
                 gt_bboxes1 = gt_bboxes
                 gt_labels1 = gt_labels
                 scene_points1 = scene_points
                 pts_semantic_mask1 = pts_semantic_mask
                 pts_instance_mask1 = pts_instance_mask
+                original_points1 = original_points
             else:
                 gt_bboxes1 = gt_bboxes.clone().detach().cpu()
                 gt_labels1 = gt_labels.clone().detach().cpu()
                 scene_points1 = scene_points.clone().detach().cpu()
                 pts_semantic_mask1 = pts_semantic_mask.clone().detach().cpu()
                 pts_instance_mask1 = pts_instance_mask.clone().detach().cpu()
+                original_points1 = original_points.clone().detach().cpu()
 
             semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes1, gt_labels1, self.n_classes)
             centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes1, gt_labels1)
@@ -487,8 +490,8 @@ class CAGroup3DHead(nn.Module):
                     if (pts_semantic_mask1[indices1[0]] < self.n_classes):
                         #IndexError: index 99940 is out of bounds for dimension 0 with size 97088
                         #Works (Up to 179152)
-                        indices = [a.long() for a in indices1 if a < len(scene_points1)]   
-                        
+                        indices = [a.item() for a in indices1 if a < len(scene_points1)]   
+
                         if len(indices) == 0:
                             instance_center[i] = torch.ones_like(instance_center[i]) * (-10000.)
                             instance_match_gt_id[i] = -1              
@@ -513,7 +516,12 @@ class CAGroup3DHead(nn.Module):
                         assert max(indices) < len(allp_offset_masks), "{}, {}, {}".format(allp_offset_targets.size(), allp_offset_masks.size(), indices)
                         allp_offset_targets[indices, :] = center - selected_points
                         #IndexError: too many indices for tensor of dimension 1
+                        #indices = [tensor(72402), tensor(74158)]
+                        #case to int
+                        #try:
                         allp_offset_masks[indices] = 1    
+                        #except:
+                        #    raise AssertionError("{}, {}, {}".format(allp_offset_targets.size(), allp_offset_masks.size(), indices))
                         tmp0 = center.view(1, 1, 3).to(center.device)
                        
                         #gt_bboxes1: torch.Size([27, 7])
@@ -539,19 +547,22 @@ class CAGroup3DHead(nn.Module):
                 offset_targets = []
                 offset_masks = []
                 knn_number = 1
-                idx = knn(knn_number, scene_points[None, :, :3].contiguous(), original_points[None, ::])[0].long()
-                instance_idx = pts_instance_mask[idx.view(-1)].view(idx.shape[0], idx.shape[1])
+                assert scene_points.device == original_points_knn.device, "Device mismatch: {} vs {}".format(scene_points.device, original_points_knn.device)
+                idx1 = knn(knn_number, scene_points[None, :, :3].contiguous(), original_points_knn[None, ::])[0].long()
+                # RuntimeError: indices should be either on cpu or on the same device as the indexed tensor (cpu)
+                idx = idx1.clone().detach().to(pts_instance_mask1.device)
+                instance_idx = pts_instance_mask1[idx.view(-1)].view(idx.shape[0], idx.shape[1])
 
                 # condition1: all the points must belong to one instance
                 valid_mask = (instance_idx == instance_idx[0]).all(0)
 
-                max_instance_num = pts_instance_mask.max()+1
+                max_instance_num = pts_instance_mask1.max()+1
                 arange_tensor = torch.arange(max_instance_num).unsqueeze(1).unsqueeze(2).to(instance_idx.device)
                 arange_tensor = arange_tensor.repeat(1, instance_idx.shape[0], instance_idx.shape[1]) # instance_num, k, points
                 instance_idx = instance_idx[None, ::].repeat(max_instance_num, 1, 1)
 
                 max_instance_idx = torch.argmax((instance_idx == arange_tensor).sum(1), dim=0)
-                offset_t = instance_center[max_instance_idx] - original_points
+                offset_t = instance_center[max_instance_idx] - original_points1
                 offset_m = torch.where(offset_t < -100., torch.zeros_like(offset_t), torch.ones_like(offset_t)).all(1)
                 offset_t = torch.where(offset_t < -100., torch.zeros_like(offset_t), offset_t)
                 offset_m *= valid_mask

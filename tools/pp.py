@@ -1,29 +1,21 @@
 import torch
 
+a = torch.randn(97088,3)
+b = a.new_zeros(len(a) + 1).to(a.device)   
 
-a = torch.randn(85, 3)
+print(a.size(), b.size())
 
-b = a.new_zeros(len(a))
+c = [torch.tensor(72402, dtype=torch.long), torch.tensor(74158, dtype=torch.long)]
 
-indices1 = torch.nonzero(torch.randn(155) * 155).squeeze(-1)
-indices = [ac.long() for ac in indices1 if ac < len(a)]   
+print(c)
 
-b[indices] = 1
+# Error
+#b[c] = 1
 
-print(b)
+d = [i.item() for i in c]   
 
-c = torch.zeros_like(a[:, :3])
+print(d)
 
-print(c.size())
+b[d] = 1
 
-c[indices, :] = torch.randn(3)
-
-#print(c)
-
-d =  a.new_zeros(len(a))
-
-print(d.size())
-
-d[indices] 
-
-print(max(indices))
+print(1)

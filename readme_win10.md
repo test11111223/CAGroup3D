@@ -109,7 +109,7 @@ python setup.py develop > ../../../logs/cuda_ops_knn.txt
 
 ```sh
 cd tools/
-CUDA_LAUNCH_BLOCKING=1 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 ```
 
 ## Rants ##
