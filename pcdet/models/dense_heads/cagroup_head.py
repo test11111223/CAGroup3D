@@ -622,11 +622,20 @@ class CAGroup3DHead(nn.Module):
                 weight=pos_centerness_targets.squeeze(1),
                 avg_factor=centerness_denorm
             )
-            loss_bbox = loss_bbox0.clone().detach().cpu()
+            # RuntimeError: Expected to have finished reduction in the prior iteration before starting a new one. 
+            torch.cuda.synchronize()
+            loss_bbox = loss_bbox0.clone().cpu()
         else:
-            loss_centerness = pos_centerness.sum()
-            loss_bbox = pos_bbox_preds.sum()
+            loss_centerness = pos_centerness.sum().cpu()
+            loss_bbox = pos_bbox_preds.sum().cpu()
         
+        #raise AssertionError("{} {} {} {} {}".format(loss_centerness.device, loss_bbox.device, loss_cls.device, loss_sem.device, loss_offset.device))
+        #assert loss_centerness.device == "cpu", "loss_centerness: {}".format(loss_centerness.device)
+        #assert loss_bbox.device == "cpu", "loss_bbox: {}".format(loss_bbox.device)
+        #assert loss_cls.device == "cpu", "loss_cls: {}".format(loss_cls.device)
+        #assert loss_sem.device == "cpu", "loss_sem: {}".format(loss_sem.device)
+        #assert loss_offset.device == "cpu", "loss_offset: {}".format(loss_offset.device)
+
         return loss_centerness, loss_bbox, loss_cls, loss_sem, loss_offset
 
     def get_bboxes(self,

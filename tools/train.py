@@ -158,6 +158,8 @@ def main():
     if dist_train:
         dtdids = [cfg.LOCAL_RANK % torch.cuda.device_count()]
         model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids)
+        # Increase BATCH_SIZE may work. (sparse tensors?)
+        #model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids, find_unused_parameters=True)
     logger.info(model)
 
     lr_scheduler, lr_warmup_scheduler = build_scheduler(

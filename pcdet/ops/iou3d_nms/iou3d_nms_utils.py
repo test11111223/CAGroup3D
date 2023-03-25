@@ -107,12 +107,12 @@ def nms_gpu(boxes0, scores0, thresh0, pre_maxsize=None, **kwargs):
     # ME = CPU, PCDET = CUDA
     boxes = boxes0.clone().detach().cuda()
     scores = scores0.clone().detach().cuda()
-    thresh = thresh0.clone().detach().cuda()
+    thresh = thresh0 #.clone().detach().cuda()
     order = scores.sort(0, descending=True)[1]
     if pre_maxsize is not None:
         order = order[:pre_maxsize]
 
-    boxes = boxes[order].contiguous()
+    boxes = boxes[order].contiguous() #.type(torch.int)
     keep = torch.LongTensor(boxes.size(0))
     num_out = iou3d_nms_cuda.nms_gpu(boxes, keep, thresh)
     return order[keep[:num_out].cuda()].contiguous(), None
@@ -129,10 +129,10 @@ def nms_normal_gpu(boxes0, scores0, thresh0, **kwargs):
     # ME = CPU, PCDET = CUDA
     boxes = boxes0.clone().detach().cuda()
     scores = scores0.clone().detach().cuda()
-    thresh = thresh0.clone().detach().cuda()
+    thresh = thresh0 #.clone().detach().cuda()
     order = scores.sort(0, descending=True)[1]
 
-    boxes = boxes[order].contiguous()
+    boxes = boxes[order].contiguous() #.type(torch.int)
 
     keep = torch.LongTensor(boxes.size(0))
     num_out = iou3d_nms_cuda.nms_normal_gpu(boxes, keep, thresh)

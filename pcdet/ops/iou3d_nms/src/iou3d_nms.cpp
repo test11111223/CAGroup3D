@@ -95,7 +95,7 @@ int nms_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
 
     int boxes_num = boxes.size(0);
     const float * boxes_data = boxes.data<float>();
-    int32_t * keep_data = keep.data<int32_t>();
+    int64_t * keep_data = keep.data<int64_t>();
 
     const int col_blocks = DIVUP(boxes_num, THREADS_PER_BLOCK_NMS);
 
@@ -144,9 +144,9 @@ int nms_normal_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
     CHECK_INPUT(boxes);
     CHECK_CONTIGUOUS(keep);
 
-    int32_t  boxes_num = boxes.size(0);
+    int64_t boxes_num = boxes.size(0);
     const float * boxes_data = boxes.data<float>();
-    int32_t * keep_data = keep.data<int32_t>();
+    int64_t * keep_data = keep.data<int64_t>();
 
     const int col_blocks = DIVUP(boxes_num, THREADS_PER_BLOCK_NMS);
 

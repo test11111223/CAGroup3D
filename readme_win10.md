@@ -1,7 +1,8 @@
 # Running CAGroup3D in Winodws 10 #
 
-- Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + 72GB DDR4 + 480GB SATA SSD
+- Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + ~~72GB~~ 128GB DDR4 + 480GB SATA SSD
 - ~~WSL2 is not installed because OS level troubleshooting is tedious.~~
+- Another testing environment: C602 + 2x E5-2650V4 + Win10 22H2 + GTX 1080 Ti + 256GB DDR4 + 500GB SATA SSD
 
 ## Objective ##
 
@@ -112,10 +113,11 @@ cd tools/
 #scannet
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd --fix_random_seed > ../logs/train_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd --fix_random_seed > ../logs/train_sunrgbd.txt
 ```
 
-- ScanNET: **60-80s for a single batch.** Takes around 120 hours for a single epoch.
+- `ScanNetV2`: Takes around **96 hours** for a single epoch. (`BATCH_SIZE=16`)
+- `SUNRGBD V1`: Takes around **36 hours** for a single epoch. (`BATCH_SIZE=16`)
 
 ## Rants ##
 
@@ -137,3 +139,4 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - [CHECK_CUDA failed.](https://zhuanlan.zhihu.com/p/541302472) ~~**Checks skipped.**~~ Meanwhile switched to `__device__ inline int check_rect_cross`. ~~Now get memory issue.~~ Make sure **ME runs in CPU and pcdet runs in CUDA**.
 - [CUDA error: device-side assert triggered.](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered) [hint1](https://discuss.pytorch.org/t/runtimeerror-cuda-error-device-side-assert-triggered-index-out-of-bounds-failed/87827) [hint2](https://github.com/IrvingMeng/MagFace/issues/15) [hint3](https://stackoverflow.com/questions/51691563/cuda-runtime-error-59-device-side-assert-triggered) [hint4](https://blog.csdn.net/li_jiaoyang/article/details/116047462) [hint5](https://discuss.pytorch.org/t/runtimeerror-cuda-error-device-side-assert-triggered/34213/8) **eval() on CPU.**
 - Indexing error revealed. [e.g.](https://blog.csdn.net/qq_41375609/article/details/106227961). *Real debug*. `knn` force cuda: Done.
+- [long should be int_64t](https://www.jianshu.com/p/755952cfce64). [long in Flutter](https://api.flutter.dev/flutter/dart-ffi/Long-class.html). [stackoverflow](https://stackoverflow.com/questions/1918436/difference-between-long-and-int-in-c)
