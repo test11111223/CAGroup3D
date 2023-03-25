@@ -82,7 +82,7 @@ class ProposalTargetLayer(nn.Module):
         #Don't want to import ME again. Use rois instead.
         roi_scores = roi_scores1.clone().detach().to(rois.device)
         roi_labels = roi_labels1.clone().detach().to(rois.device)
-        gt_boxes = gt_boxes1.clone().detach().to(rois.device)
+        gt_boxes = gt_boxes1 #.clone().detach().to(rois.device)
 
         code_size = rois.shape[-1]
         batch_rois = rois.new_zeros(batch_size, self.roi_sampler_cfg.ROI_PER_IMAGE, code_size)
