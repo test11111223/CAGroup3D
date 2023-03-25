@@ -623,8 +623,11 @@ class CAGroup3DHead(nn.Module):
                 avg_factor=centerness_denorm
             )
             # RuntimeError: Expected to have finished reduction in the prior iteration before starting a new one. 
-            torch.cuda.synchronize()
-            loss_bbox = loss_bbox0.clone().cpu()
+            if is_cuda_available():
+                loss_bbox = loss_bbox0
+            else:
+                torch.cuda.synchronize()
+                loss_bbox = loss_bbox0.clone().cpu()
         else:
             loss_centerness = pos_centerness.sum().cpu()
             loss_bbox = pos_bbox_preds.sum().cpu()
@@ -814,7 +817,12 @@ class CAGroup3DHead(nn.Module):
             correct_class_bboxes = class_bboxes.clone()
             if yaw_flag:
                 correct_class_bboxes[..., 6] *= -1
-            nms_ids, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            nms_ids1, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().to(nms_bboxes.device)            
             nms_bboxes = class_bboxes[nms_ids]
             nms_scores = class_scores[nms_ids]
             nms_labels = class_labels[nms_ids]
@@ -853,7 +861,12 @@ class CAGroup3DHead(nn.Module):
             correct_class_bboxes = class_bboxes.clone()
             if yaw_flag:
                 correct_class_bboxes[..., 6] *= -1
-            nms_ids, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            nms_ids1, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().to(nms_bboxes.device)       
             nms_bboxes.append(class_bboxes[nms_ids])
             nms_scores.append(class_scores[nms_ids])
             nms_labels.append(bboxes.new_full(class_scores[nms_ids].shape, i, dtype=torch.long))
