@@ -63,10 +63,16 @@ class ProposalTargetLayer(nn.Module):
     def sample_rois_for_rcnn(self, batch_dict):
         batch_size = batch_dict['batch_size']
         rois = batch_dict['rois']
-        roi_scores = batch_dict['roi_scores']
-        roi_labels = batch_dict['roi_labels']
-        gt_boxes = batch_dict['gt_bboxes_3d']
-        gt_labels = batch_dict['gt_labels_3d']
+        roi_scores1 = batch_dict['roi_scores']
+        roi_labels1 = batch_dict['roi_labels']
+        gt_boxes1 = batch_dict['gt_bboxes_3d']
+        gt_labels1 = batch_dict['gt_labels_3d']
+
+        #Don't want to import ME again. Use rois instead.
+        roi_scores = roi_scores1.clone().detach().to(rois.device)
+        roi_labels = roi_labels1.clone().detach().to(rois.device)
+        gt_boxes = gt_boxes1.clone().detach().to(rois.device)
+        gt_labels = gt_labels1.clone().detach().to(rois.device)
 
         code_size = rois.shape[-1] # 7
         gt_code_size = gt_boxes[0].shape[-1] # 7

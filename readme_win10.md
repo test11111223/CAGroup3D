@@ -28,7 +28,7 @@
 
 - [Ref CSDN](https://blog.csdn.net/m0_37890541/article/details/107723861) [Ref stackoverflow](https://stackoverflow.com/questions/70013/how-to-detect-if-im-compiling-code-with-a-particular-visual-studio-version) Modify `host_config.h`: `_MSC_VER >= 2000` 
 
-- Prepare a python environment (python 3.10 + pytorch cu117 + spconv cu117) ~~copy manually in cmd~~:
+- Prepare a python environment (python 3.10 + pytorch 1.13.1+cu117 + spconv cu117) ~~copy manually in cmd~~:
 
 - [If there is some strange SSL error](https://github.com/conda/conda/issues/11795#issuecomment-1340010125)
 
@@ -40,8 +40,8 @@ conda activate cagroup3d-env
 # Gamble on cu117 (nvidia-smi shows GTX 2080Ti + CUDA 12.1), as pytorch has cu117 also
 pip install spconv-cu117
 
-# Yea, need torch.
-pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+# Yea, need torch. Must be 1.13.1.
+pip install torch==1.13.1+cu117 torchvision --extra-index-url https://download.pytorch.org/whl/cu117
 
 # Version conflict between numpy and numba
 conda install -c conda-forge numba
