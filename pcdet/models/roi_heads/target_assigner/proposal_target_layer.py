@@ -101,7 +101,8 @@ class ProposalTargetLayer(nn.Module):
                     gt_boxes=cur_gt[:, 0:7], gt_labels=cur_gt[:, -1].long()
                 )
             else:
-                iou3d = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt[:, 0:7])  # (M, N)
+                iou3d1 = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt[:, 0:7])  # (M, N)
+                iou3d = iou3d1.clone().to(max_overlaps.device)  
                 max_overlaps, gt_assignment = torch.max(iou3d, dim=1)
 
             sampled_inds = self.subsample_rois(max_overlaps=max_overlaps)
@@ -220,7 +221,8 @@ class ProposalTargetLayer(nn.Module):
                 cur_gt = gt_boxes[gt_mask]
                 original_gt_assignment = gt_mask.nonzero().view(-1)
 
-                iou3d = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d1 = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d = iou3d1.clone().to(max_overlaps.device)  
                 cur_max_overlaps, cur_gt_assignment = torch.max(iou3d, dim=1)
                 max_overlaps[roi_mask] = cur_max_overlaps
                 gt_assignment[roi_mask] = original_gt_assignment[cur_gt_assignment]

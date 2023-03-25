@@ -822,7 +822,7 @@ class CAGroup3DHead(nn.Module):
                 nms_ids = nms_ids1
             else:
                 torch.cuda.synchronize()
-                nms_ids = nms_ids1.clone().to(nms_bboxes.device)            
+                nms_ids = nms_ids1.clone().cpu() 
             nms_bboxes = class_bboxes[nms_ids]
             nms_scores = class_scores[nms_ids]
             nms_labels = class_labels[nms_ids]
@@ -866,7 +866,7 @@ class CAGroup3DHead(nn.Module):
                 nms_ids = nms_ids1
             else:
                 torch.cuda.synchronize()
-                nms_ids = nms_ids1.clone().to(nms_bboxes.device)       
+                nms_ids = nms_ids1.clone().cpu()  
             nms_bboxes.append(class_bboxes[nms_ids])
             nms_scores.append(class_scores[nms_ids])
             nms_labels.append(bboxes.new_full(class_scores[nms_ids].shape, i, dtype=torch.long))
