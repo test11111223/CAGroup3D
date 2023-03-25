@@ -539,7 +539,7 @@ def axis_aligned_bbox_overlaps_3d(bboxes1,
     gious = ious - (enclose_area - union) / enclose_area
     return gious
 
-def axis_aligned_iou_loss(pred, target, weight=None, reduction='mean', avg_factor=None):
+def axis_aligned_iou_loss(pred, target, weight0=None, reduction='mean', avg_factor=None):
     """Calculate the IoU loss (1-IoU) of two set of axis aligned bounding
     boxes. Note that predictions and targets are one-to-one corresponded.
 
@@ -567,19 +567,24 @@ def axis_aligned_iou_loss(pred, target, weight=None, reduction='mean', avg_facto
         elif reduction_enum == 2:
             return loss.sum()
 
+    pred_cuda = pred[None, ...].clone().detach().cuda()
+    target_cuda = target[None, ...].clone().detach().cuda()
+    weight = weight0.clone().detach().cuda() if weight0 is not None else None
+    avg_factor0 = avg_factor.clone().detach().cuda() if avg_factor is not None else None
+
     axis_aligned_iou = AxisAlignedBboxOverlaps3D()(
-        pred, target, is_aligned=True)
+        pred_cuda, target_cuda, is_aligned=True)
     iou_loss = 1 - axis_aligned_iou
     if weight is not None:
         iou_loss = iou_loss * weight
 
     # if avg_factor is not specified, just reduce the loss
-    if avg_factor is None:
+    if avg_factor0 is None:
         iou_loss = reduce_loss(iou_loss, reduction)
     else:
         # if reduction is mean, then average the loss by avg_factor
         if reduction == 'mean':
-            iou_loss = iou_loss.sum() / avg_factor
+            iou_loss = iou_loss.sum() / avg_factor0
         # if reduction is 'none', then do nothing, otherwise raise an error
         elif reduction != 'none':
             raise ValueError('avg_factor can not be used with reduction="sum"')

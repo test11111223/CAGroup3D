@@ -11,24 +11,28 @@ import torch.nn as nn
 from .loss_utils import AxisAlignedBboxOverlaps3D, reduce_loss
 from pcdet.ops.rotated_iou import cal_iou_3d
 
-def iou_3d_loss(pred, target, weight=None, reduction='mean', avg_factor=None): # TODO: check the coordinate of IoU loss
-    iou_loss = 1 - cal_iou_3d(pred[None, ...], target[None, ...])
+def iou_3d_loss(pred, target, weight0=None, reduction='mean', avg_factor=None): # TODO: check the coordinate of IoU loss
+    pred_cuda = pred[None, ...].clone().detach().cuda()
+    target_cuda = target[None, ...].clone().detach().cuda()
+    weight = weight0.clone().detach().cuda() if weight0 is not None else None
+    avg_factor0 = avg_factor.clone().detach().cuda() if avg_factor is not None else None
+    iou_loss = 1 - cal_iou_3d(pred_cuda, target_cuda)
     if weight is not None:
         iou_loss = iou_loss * weight
 
     # if avg_factor is not specified, just reduce the loss
-    if avg_factor is None:
+    if avg_factor0 is None:
         iou_loss = reduce_loss(iou_loss, reduction)
     else:
         # if reduction is mean, then average the loss by avg_factor
         if reduction == 'mean':
-            iou_loss = iou_loss.sum() / avg_factor
+            iou_loss = iou_loss.sum() / avg_factor0
         # if reduction is 'none', then do nothing, otherwise raise an error
         elif reduction != 'none':
             raise ValueError('avg_factor can not be used with reduction="sum"')
     return iou_loss 
 
-def axis_aligned_iou_loss(pred, target, weight=None, reduction='mean', avg_factor=None):
+def axis_aligned_iou_loss(pred, target, weight0=None, reduction='mean', avg_factor=None):
     def _transform(bbox):
         return torch.stack((
             bbox[..., 0] - bbox[..., 3] / 2,
@@ -38,20 +42,26 @@ def axis_aligned_iou_loss(pred, target, weight=None, reduction='mean', avg_facto
             bbox[..., 1] + bbox[..., 4] / 2,
             bbox[..., 2] + bbox[..., 5] / 2,
         ), dim=-1)
+    
+    pred_cuda = pred[None, ...].clone().detach().cuda()
+    target_cuda = target[None, ...].clone().detach().cuda()
+    weight = weight0.clone().detach().cuda() if weight0 is not None else None
+    avg_factor0 = avg_factor.clone().detach().cuda() if avg_factor is not None else None
+
     axis_aligned_iou = AxisAlignedBboxOverlaps3D()(
-        _transform(pred), _transform(target), is_aligned=True)
+        _transform(pred_cuda), _transform(target_cuda), is_aligned=True)
     iou_loss = 1 - axis_aligned_iou
 
     if weight is not None:
         iou_loss = iou_loss * weight
 
     # if avg_factor is not specified, just reduce the loss
-    if avg_factor is None:
+    if avg_factor0 is None:
         iou_loss = reduce_loss(iou_loss, reduction)
     else:
         # if reduction is mean, then average the loss by avg_factor
         if reduction == 'mean':
-            iou_loss = iou_loss.sum() / avg_factor
+            iou_loss = iou_loss.sum() / avg_factor0
         # if reduction is 'none', then do nothing, otherwise raise an error
         elif reduction != 'none':
             raise ValueError('avg_factor can not be used with reduction="sum"')

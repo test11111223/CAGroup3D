@@ -431,25 +431,26 @@ class CAGroup3DHead(nn.Module):
                 gt_bboxes1 = gt_bboxes.clone().detach().cpu()
                 gt_labels1 = gt_labels.clone().detach().cpu()
                 scene_points1 = scene_points.clone().detach().cpu()
-                pts_semantic_mask1 = pts_semantic_mask.clone().detach().cpu()
-                pts_instance_mask1 = pts_instance_mask.clone().detach().cpu()
+                pts_semantic_mask1 =  pts_semantic_mask.clone().detach().cpu() if pts_semantic_mask is not None else None
+                pts_instance_mask1 = pts_instance_mask.clone().detach().cpu() if pts_instance_mask is not None else None
                 original_points1 = original_points.clone().detach().cpu()
 
             semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes1, gt_labels1, self.n_classes)
             centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes1, gt_labels1)
             # compute offset targets
             if self.with_yaw:
-                num_points = original_points.shape[0]
-                vote_targets = original_points.new_zeros([num_points, 3 * self.gt_per_seed])
-                vote_target_masks = original_points.new_zeros([num_points],
+                num_points = original_points1.shape[0]
+                vote_targets = original_points1.new_zeros([num_points, 3 * self.gt_per_seed])
+                vote_target_masks = original_points1.new_zeros([num_points],
                                                     dtype=torch.long)
-                vote_target_idx = original_points.new_zeros([num_points], dtype=torch.long)
-                box_indices_all = find_points_in_boxes(points=original_points, gt_bboxes=gt_bboxes1) # n_points. n_boxes
+                vote_target_idx = original_points1.new_zeros([num_points], dtype=torch.long)
+                box_indices_all = find_points_in_boxes(points=original_points1, gt_bboxes=gt_bboxes1) # n_points. n_boxes
                 for i in range(gt_labels1.shape[0]):
                     box_indices = box_indices_all[:, i]
-                    indices = torch.nonzero(
-                        box_indices, as_tuple=False).squeeze(-1)
-                    selected_points = original_points[indices]
+                    indices1 = torch.nonzero(
+                        box_indices, as_tuple=False).squeeze(-1).to(scene_points1.device) 
+                    indices = [a.item() for a in indices1 if a < len(scene_points1)]   
+                    selected_points = original_points1[indices]
                     vote_target_masks[indices] = 1
                     vote_targets_tmp = vote_targets[indices]
                     votes = gt_bboxes1[i, :3].unsqueeze(
@@ -458,7 +459,7 @@ class CAGroup3DHead(nn.Module):
                     for j in range(self.gt_per_seed):
                         column_indices = torch.nonzero(
                             vote_target_idx[indices] == j,
-                            as_tuple=False).squeeze(-1)
+                            as_tuple=False).squeeze(-1).to(scene_points1.device) 
                         vote_targets_tmp[column_indices,
                                         int(j * 3):int(j * 3 +
                                                         3)] = votes[column_indices]
@@ -615,12 +616,13 @@ class CAGroup3DHead(nn.Module):
             loss_centerness = self.loss_centerness(
                 pos_centerness, pos_centerness_targets, avg_factor=n_pos
             )
-            loss_bbox = self.loss_bbox(
+            loss_bbox0 = self.loss_bbox(
                 self._bbox_pred_to_bbox(pos_points, pos_bbox_preds),
                 pos_bbox_targets,
                 weight=pos_centerness_targets.squeeze(1),
                 avg_factor=centerness_denorm
             )
+            loss_bbox = loss_bbox0.clone().detach().cpu()
         else:
             loss_centerness = pos_centerness.sum()
             loss_bbox = pos_bbox_preds.sum()
