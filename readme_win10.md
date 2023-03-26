@@ -49,6 +49,9 @@ conda install -c conda-forge numba
 # OMP: Error #15. Alternatively you can set a OS flag
 #os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 conda install -c conda-forge nomkl
+
+# Tensorboard
+conda install -c conda-forge tensorboard
 ```
 
 - MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
@@ -116,8 +119,20 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher p
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd --fix_random_seed > ../logs/train_sunrgbd.txt
 ```
 
+- Tensorboard (cmd output is messy), original code used [tensorboardX](https://github.com/lanpa/tensorboardX): 
+
+```sh
+#scannet
+tensorboard --logdir output/scannet_models/CAGroup3D/cagroup3d-win10-scannet/tensorboard
+#sunrgbd
+tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd/tensorboard
+``` 
+
+## Hours for training ##
+
 - `ScanNetV2`: Takes around **96 hours** for a single epoch. (`BATCH_SIZE=16`)
 - `SUNRGBD V1`: Takes around **36 hours** for a single epoch. (`BATCH_SIZE=16`)
+- `BATCH_SIZE` has *no effect*. Keep waiting.
 
 ## Rants ##
 
