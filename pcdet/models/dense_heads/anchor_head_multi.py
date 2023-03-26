@@ -292,7 +292,8 @@ class AnchorHeadMulti(AnchorHeadTemplate):
             cls_loss_src = self.cls_loss_func(cls_pred, one_hot_target, weights=cls_weight)  # [N, M]
             cls_loss = cls_loss_src.sum() / batch_size
             cls_loss = cls_loss * loss_weights['cls_weight']
-            cls_losses += cls_loss
+            cls_loss1 = cls_loss.clone().detach().cpu()
+            cls_losses += cls_loss1
             start_idx += cls_pred.shape[1]
         assert start_idx == one_hot_targets.shape[1]
         tb_dict = {
@@ -346,8 +347,9 @@ class AnchorHeadMulti(AnchorHeadTemplate):
             loc_loss = loc_loss_src.sum() / batch_size
 
             loc_loss = loc_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']
-            box_losses += loc_loss
-            tb_dict['rpn_loss_loc'] = tb_dict.get('rpn_loss_loc', 0) + loc_loss.item()
+            loc_loss1 = loc_loss.clone().detach().cpu()
+            box_losses += loc_loss1
+            tb_dict['rpn_loss_loc'] = tb_dict.get('rpn_loss_loc', 0) + loc_loss1.item()
 
             if box_dir_cls_preds is not None:
                 if not isinstance(box_dir_cls_preds, list):

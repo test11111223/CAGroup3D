@@ -453,7 +453,12 @@ class CAGroup3DRoIHead(nn.Module):
                     class_bboxes, torch.zeros_like(class_bboxes[:, :1])), dim=1)
                 nms_function = nms_normal_gpu
 
-            nms_ids, _ = nms_function(class_bboxes, class_scores, self.test_iou_thr)
+            nms_ids1, _ = nms_function(class_bboxes, class_scores, self.test_iou_thr)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().cpu() 
             nms_bboxes.append(class_bboxes[nms_ids])
             nms_scores.append(class_scores[nms_ids])
             nms_labels.append(bboxes.new_full(class_scores[nms_ids].shape, i, dtype=torch.long))
@@ -547,8 +552,10 @@ class CAGroup3DRoIHead(nn.Module):
             raise NotImplementedError
 
         rcnn_loss_cls = rcnn_loss_cls * self.loss_weight.RCNN_CLS_WEIGHT
-        tb_dict = {'rcnn_loss_cls': rcnn_loss_cls.item()}
-        return rcnn_loss_cls, tb_dict
+        # Must be in CPU afterward
+        rcnn_loss_cls1 = rcnn_loss_cls.clone().detach().cpu()
+        tb_dict = {'rcnn_loss_cls': rcnn_loss_cls1.item()}
+        return rcnn_loss_cls1, tb_dict
     
     def get_box_reg_layer_loss(self, forward_ret_dict):
         code_size = self.code_size
@@ -611,10 +618,14 @@ class CAGroup3DRoIHead(nn.Module):
         else:
             raise NotImplementedError
         
+        # Must be in CPU afterward
         if not self.use_iou_loss:
-            return rcnn_loss_reg, tb_dict
+            rcnn_loss_reg1 = rcnn_loss_reg.clone().detach().cpu()
+            return rcnn_loss_reg1, tb_dict
         else:
-            return rcnn_loss_reg, loss_iou, tb_dict
+            rcnn_loss_reg1 = rcnn_loss_reg.clone().detach().cpu()
+            loss_iou1 = loss_iou.clone().detach().cpu()
+            return rcnn_loss_reg1, loss_iou1, tb_dict
 
     def forward(self, input_dict):
         if self.training:

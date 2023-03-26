@@ -129,10 +129,11 @@ class AnchorHeadTemplate(nn.Module):
         cls_loss = cls_loss_src.sum() / batch_size
 
         cls_loss = cls_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['cls_weight']
+        cls_loss1 = cls_loss.clone().detach().cpu()
         tb_dict = {
-            'rpn_loss_cls': cls_loss.item()
+            'rpn_loss_cls': cls_loss1.item()
         }
-        return cls_loss, tb_dict
+        return cls_loss1, tb_dict
 
     @staticmethod
     def add_sin_difference(boxes1, boxes2, dim=6):
@@ -190,9 +191,11 @@ class AnchorHeadTemplate(nn.Module):
         loc_loss = loc_loss_src.sum() / batch_size
 
         loc_loss = loc_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']
-        box_loss = loc_loss
+        # Must be in CPU afterward
+        loc_loss1 = loc_loss.clone().detach().cpu()
+        box_loss = loc_loss1
         tb_dict = {
-            'rpn_loss_loc': loc_loss.item()
+            'rpn_loss_loc': loc_loss1.item()
         }
 
         if box_dir_cls_preds is not None:
