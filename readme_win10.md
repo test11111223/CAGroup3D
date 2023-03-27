@@ -1,8 +1,8 @@
 # Running CAGroup3D in Winodws 10 #
 
-- Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + ~~72GB~~ 128GB DDR4 + 480GB SATA SSD
-- ~~WSL2 is not installed because OS level troubleshooting is tedious.~~
-- Another testing environment: C602 + 2x E5-2650V4 + Win10 22H2 + GTX 1080 Ti + 256GB DDR4 + 500GB SATA SSD
+- (Passed) Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + ~~72GB~~ 128GB DDR4 + 480GB SATA SSD
+- (Passed) Another testing environment: C602 + 2x E5-2650V4 + Win10 22H1 + GTX 1080 Ti + 256GB DDR4 + 500GB SATA SSD
+- **WSL2 does not work.** CUDA crash hopelessly.
 
 ## Objective ##
 
@@ -60,17 +60,7 @@ conda install -c conda-forge tensorboard
 pip install ninja open3d
 pip install MinkowskiEngine-0.5.4-cp310-cp310-win_amd64.whl
 ```
-- If you choose WSL2: 
-
-```
-apt-get install -y python3-dev libopenblas-dev
-pip install \
-  -U git+https://github.com/NVIDIA/MinkowskiEngine@v0.5.4 \
-  --install-option="--blas=openblas" \
-  --install-option="--force_cuda" \
-  -v \
-  --no-deps
-```
+- **WSL2 is not working.**
 
 - Now it is good to clone. Final check:
 
@@ -114,9 +104,9 @@ python setup.py develop > ../../../logs/cuda_ops_knn.txt
 ```sh
 cd tools/
 #scannet
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7860 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet --fix_random_seed > ../logs/train_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd --fix_random_seed > ../logs/train_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
 ```
 
 - Tensorboard (cmd output is messy), original code used [tensorboardX](https://github.com/lanpa/tensorboardX): 
@@ -133,6 +123,31 @@ tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd/ten
 - `ScanNetV2`: Takes around **96 hours** for a single epoch. (`BATCH_SIZE=16`)
 - `SUNRGBD V1`: Takes around **36 hours** for a single epoch. (`BATCH_SIZE=16`)
 - `BATCH_SIZE` has *no effect*. Keep waiting.
+
+## Evaluation ##
+
+- In progress. ~~Keep debugging.~~
+
+```sh
+cd tools/
+#scannet
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval > ../logs/eval_scannet.txt
+#sunrgbd
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
+```
+
+
+## Pretrained model and logs ##
+
+- **epoch 1 only**. Out of time. Still need debugging.
+
+|Task|`scannet`|`sunrgbd`|
+|---|---|---|
+|Huggingface|[cagroup3d-win10-sunrgb](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
+
+## Performance ##
+
+- In progress.
 
 ## Rants ##
 
@@ -157,3 +172,5 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - [long should be int_64t](https://www.jianshu.com/p/755952cfce64). [long in Flutter](https://api.flutter.dev/flutter/dart-ffi/Long-class.html). [stackoverflow](https://stackoverflow.com/questions/1918436/difference-between-long-and-int-in-c)
 - sunrgbd's code coverage is larger then scannet, meanwhile the dataset is 2x smaller. Test with this dataset first. ~~It takes 30-60 mins to crash but scannet takes 2Hrs.~~
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
+- **TODO** Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~
+- **TODO** Why the model cannot be eval?

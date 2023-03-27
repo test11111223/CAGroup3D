@@ -20,9 +20,10 @@ class CAGroup3D(Detector3DTemplate):
         """voxelize input points."""
         # points Nx7 (bs_id, x, y, z, r, g, b)
         me_device = None if is_cuda_available() else "cpu"
-        coordinates = points[:, :4].clone()
+        coordinates = torch.from_numpy(points[:, :4]).clone()if type(points).__module__ == np.__name__ else points[:, :4].clone()
         coordinates[:, 1:] /= self.voxel_size
-        features = points[:, 4:].clone()
+        features = torch.from_numpy(points[:, :4]).clone() if type(points).__module__ == np.__name__ else points[:, :4].clone()
+        #.to(torch.int) ?
         sp_tensor = ME.SparseTensor(coordinates=coordinates, features=features, device=me_device)
         return sp_tensor
 
@@ -37,6 +38,8 @@ class CAGroup3D(Detector3DTemplate):
         batch_dict['sp_tensor'] = sp_tensor
         
         for cur_module in self.module_list:
+            if not is_cuda_available():
+                cur_module.cpu()
             results = cur_module(batch_dict)
             batch_dict.update(results)
 

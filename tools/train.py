@@ -137,6 +137,14 @@ def main():
     optimizer = build_optimizer(model, cfg.OPTIMIZATION)
 
     # load checkpoint if it is possible
+    if False:
+        checkpoint = torch.load(PATH)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+
+    # load checkpoint if it is possible
     start_epoch = it = 0
     last_epoch = -1
     if args.pretrained_model is not None:
