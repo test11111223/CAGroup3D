@@ -16,14 +16,14 @@ class CAGroup3D(Detector3DTemplate):
         self.semantic_iter_value = self.model_cfg.SEMANTIC_ITER_VALUE
         self.semantic_value = self.model_cfg.SEMANTIC_THR
     
-    def voxelization(self, points):
+    def voxelization(self, points1):
         """voxelize input points."""
         # points Nx7 (bs_id, x, y, z, r, g, b)
         me_device = None if is_cuda_available() else "cpu"
-        coordinates = torch.from_numpy(points[:, :4]).clone()if type(points).__module__ == np.__name__ else points[:, :4].clone()
+        points = torch.from_numpy(points1) if type(points1).__module__ == np.__name__ else points1
+        coordinates = points[:, :4].clone()
         coordinates[:, 1:] /= self.voxel_size
-        features = torch.from_numpy(points[:, :4]).clone() if type(points).__module__ == np.__name__ else points[:, :4].clone()
-        #.to(torch.int) ?
+        features = points[:, 4:].clone()
         sp_tensor = ME.SparseTensor(coordinates=coordinates, features=features, device=me_device)
         return sp_tensor
 
