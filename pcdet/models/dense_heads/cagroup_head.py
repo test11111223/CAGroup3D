@@ -305,14 +305,21 @@ class CAGroup3DHead(nn.Module):
             if 'gt_boxes' in input_dict.keys() and 'gt_bboxes_3d' not in input_dict.keys():
                 gt_bboxes_3d = []
                 gt_labels_3d = []
-                device = input_dict['points'].device
+                device = 'cpu' if type(input_dict['points']).__module__ == np.__name__ else input_dict['points'].device
                 for b in range(len(input_dict['gt_boxes'])):
                     gt_bboxes_b = []
                     gt_labels_b = []
                     for _item in input_dict['gt_boxes'][b]:
+                        #Both np and torch has all()
                         if not (_item == 0.).all(): 
-                            gt_bboxes_b.append(_item[:7])  
-                            gt_labels_b.append(_item[7:8]) 
+                            gt_bboxes_b_item = _item[:7]
+                            gt_labels_b_item = _item[7:8]
+                            if type(gt_bboxes_b_item).__module__ == np.__name__:
+                                gt_bboxes_b_item =  torch.from_numpy(gt_bboxes_b_item)
+                            if type(gt_labels_b_item).__module__ == np.__name__:
+                                gt_labels_b_item =  torch.from_numpy(gt_labels_b_item)
+                            gt_bboxes_b.append(gt_bboxes_b_item)  
+                            gt_labels_b.append(gt_labels_b_item) 
                     if len(gt_bboxes_b) == 0:
                         gt_bboxes_b = torch.zeros((0, 7), dtype=torch.float32).to(device)
                         gt_labels_b = torch.zeros((0,), dtype=torch.int).to(device)

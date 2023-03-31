@@ -52,6 +52,9 @@ conda install -c conda-forge nomkl
 
 # Tensorboard
 conda install -c conda-forge tensorboard
+
+# For evalulation
+conda install -c conda-forge terminaltables
 ```
 
 - MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
@@ -143,11 +146,18 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 
 |Task|`scannet`|`sunrgbd`|
 |---|---|---|
-|Huggingface|[cagroup3d-win10-sunrgb](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
+|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
+|`mAP@0.25`|?|?|
+|`mAP@0.50`|?|?|
 
 ## Performance ##
 
 - In progress.
+
+## Hours for evaluation ##
+
+- `ScanNetV2`: Takes around **5 hours**.
+- `SUNRGBD V1`: Takes around **5 hours**.
 
 ## Rants ##
 
@@ -173,4 +183,5 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - sunrgbd's code coverage is larger then scannet, meanwhile the dataset is 2x smaller. Test with this dataset first. ~~It takes 30-60 mins to crash but scannet takes 2Hrs.~~
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
 - **TODO** Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~
-- **TODO** Why the model cannot be eval?
+- Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
+- **TODO** Visualization. There is a `result.pkl` without any explaination.
