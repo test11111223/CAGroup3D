@@ -145,7 +145,7 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 - **epoch 1 only**. Out of time. Still need debugging.
 
 |Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|
-|---|---|---|
+|---|---|---|---|---|
 |Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|
 |`mAP_0.25`|2.6154|4.3875|~~74.0~~|~~67.1~~|
 |`mAP_0.50`|0.1057|0.7867|~~61.1~~|~~49.1~~|
