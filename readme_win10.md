@@ -140,7 +140,7 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 ```
 
 
-## Pretrained model and logs ##
+## Performance / Pretrained model and logs ##
 
 - **epoch 1 only**. Out of time. Still need debugging.
 
@@ -152,13 +152,9 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 |`mAR_0.25`|8.0527|7.8397|n/a|n/a|
 |`mAR_0.50`|0.7545|2.0583|n/a|n/a|
 
-## Performance ##
-
-- In progress.
-
 ## Hours for evaluation ##
 
-- `ScanNetV2`: Takes around **5 hours**.
+- `ScanNetV2`: Takes around **2 hours**.
 - `SUNRGBD V1`: Takes around **5 hours**.
 
 ## Rants ##
