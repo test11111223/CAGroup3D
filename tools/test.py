@@ -193,7 +193,7 @@ def main():
     ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / 'ckpt'
 
     # GPU count or CPU count. However CPU count is capped at 24 (OMP_NUM_THREADS).
-    args_workers = 2 #args.workers if is_cuda_available() else max(os.cpu_count(), 24)
+    args_workers = args.workers if is_cuda_available() else max(os.cpu_count(), 24)
 
     test_set, test_loader, sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,
