@@ -144,11 +144,13 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 
 - **epoch 1 only**. Out of time. Still need debugging.
 
-|Task|`scannet`|`sunrgbd`|
+|Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|
 |---|---|---|
-|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
-|`mAP@0.25`|?|?|
-|`mAP@0.50`|?|?|
+|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|
+|`mAP_0.25`|2.6154|4.3875|~~74.0~~|~~67.1~~|
+|`mAP_0.50`|0.1057|0.7867|~~61.1~~|~~49.1~~|
+|`mAR_0.25`|8.0527|7.8397|n/a|n/a|
+|`mAR_0.50`|0.7545|2.0583|n/a|n/a|
 
 ## Performance ##
 
@@ -184,4 +186,4 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
 - **TODO** Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
-- **TODO** Visualization. There is a `result.pkl` without any explaination.
+- **TODO** Visualization / play with estimation. There is a `result.pkl` without any explaination.
