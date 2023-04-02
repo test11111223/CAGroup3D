@@ -55,6 +55,9 @@ conda install -c conda-forge tensorboard
 
 # For evalulation
 conda install -c conda-forge terminaltables
+
+# For "plan b" of data visualisation
+conda install -c conda-forge mayavi
 ```
 
 - MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
@@ -125,7 +128,7 @@ tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-tra
 ```sh
 cd tools/
 #scannet
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --pretrained_model ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --epochs 9 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --pretrained_model ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --epochs 9 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
 #sunrgbd
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --pretrained_model ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --epochs 13 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
 ```
@@ -143,9 +146,9 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher p
 ```sh
 cd tools/
 #scannet
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval > ../logs/eval_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval --save_to_file > ../logs/eval_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval --save_to_file > ../logs/eval_sunrgbd.txt
 ```
 
 ## Hours for evaluation ##
@@ -165,6 +168,18 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 |`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|
 |`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|
 |`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|
+
+## Visualize data ##
+
+- No explaination from original repo, expected aligned with the provided `demo.py`
+
+```sh
+cd tools/
+#scannet
+python demo.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --data_path ../data/scannet_data/scannet/ScanNetV2
+#sunrgbd
+python demo.py --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --data_path ../data/sunrgbd_data/sunrgbd
+```
 
 ## Rants ##
 
@@ -189,6 +204,6 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - [long should be int_64t](https://www.jianshu.com/p/755952cfce64). [long in Flutter](https://api.flutter.dev/flutter/dart-ffi/Long-class.html). [stackoverflow](https://stackoverflow.com/questions/1918436/difference-between-long-and-int-in-c)
 - sunrgbd's code coverage is larger then scannet, meanwhile the dataset is 2x smaller. Test with this dataset first. ~~It takes 30-60 mins to crash but scannet takes 2Hrs.~~
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
-- **TODO** Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~
+- Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
-- **TODO** Visualization / play with estimation. There is a `result.pkl` without any explaination.
+- **TODO** Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`. *Oh no* `demo.py` is another rabbit hole.
