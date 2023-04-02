@@ -116,20 +116,29 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher p
 
 ```sh
 #scannet
-tensorboard --logdir output/scannet_models/CAGroup3D/cagroup3d-win10-scannet/tensorboard
+tensorboard --logdir output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/tensorboard
 #sunrgbd
-tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd/tensorboard
+tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/tensorboard
 ``` 
+
+- Train from pretrained model (Remember to move the directory and calculate the epoch):
+```sh
+cd tools/
+#scannet
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --pretrained_model ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --epochs 9 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
+#sunrgbd
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --pretrained_model ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --epochs 13 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
+```
 
 ## Hours for training ##
 
 - `ScanNetV2`: Takes around **96 hours** for a single epoch. (`BATCH_SIZE=16`)
 - `SUNRGBD V1`: Takes around **36 hours** for a single epoch. (`BATCH_SIZE=16`)
-- `BATCH_SIZE` has *no effect*. Keep waiting.
+- `BATCH_SIZE` Has *no effect*. Keep waiting.
 
 ## Evaluation ##
 
-- In progress. ~~Keep debugging.~~
+- Although the CPU usage is not very intense, do not run both evals in the same time. You may crash the OS (kernel), and get the scary [GPU error code 43](https://www.nvidia.com/en-us/geforce/forums/game-ready-drivers/13/273008/code-43-please-help/). Disable then re-enable the GPU driver will bring it back.
 
 ```sh
 cd tools/
@@ -139,6 +148,11 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher py
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
 ```
 
+## Hours for evaluation ##
+
+- `ScanNetV2`: Takes around **2 hours**.
+- `SUNRGBD V1`: Takes around **5 hours**.
+- `args_workers`: No obvious effect. Keep waiting.
 
 ## Performance / Pretrained model and logs ##
 
@@ -151,11 +165,6 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 |`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|
 |`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|
 |`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|
-
-## Hours for evaluation ##
-
-- `ScanNetV2`: Takes around **2 hours**.
-- `SUNRGBD V1`: Takes around **5 hours**.
 
 ## Rants ##
 
