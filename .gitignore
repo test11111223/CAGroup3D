@@ -1,0 +1,10 @@
+build/
+logs/*.txt
+temp/
+*.pyd
+*.egg
+.vscode/
+data/scannet_data/
+data/sunrgbd_data/
+__pycache__
+output/
