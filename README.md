@@ -66,7 +66,7 @@ python setup.py install --blas=openblas --force_cuda
 
 ## Data preparation
 We haven't achieved compatibility with the generated data of OpenPCDet yet and use the same data format as [MMdeteciton3d](https://github.com/open-mmlab/mmdetection3d) for now. We will try to implement indoor data pre-processing based on OpenPCDet as soon as possible.
-- follow  [MMdetection3D](https://github.com/open-mmlab/mmdetection3d) to create data (ScanNetV2, SunRGBD),  we also provide processed data in [here](https://drive.google.com/drive/folders/1sKvq4WBSEb4CWMdCTN6lCHLXnn3NwUv_).
+- follow  [MMdetection3D(0.15)](https://github.com/open-mmlab/mmdetection3d) to create data (ScanNetV2, SunRGBD). Note that the coordinate system adopted in MMdetection3D(0.15) is very different from MMdetection3D(>=1.0). We also provide processed data in [GoogleDrive](https://drive.google.com/drive/folders/1sKvq4WBSEb4CWMdCTN6lCHLXnn3NwUv_) (highly recommended). For people from mainland China, we also provide [BaiduDrive](https://pan.baidu.com/s/1SO1YhvC9BZh5eFXYjt-a3g?pwd=8mfk).
 
 
 - remember to modify the `DATA_PATH` in **tools/cfgs/dataset_configs/scannet_dataset.yaml**, **sunrgbd_dataset.yaml** or link the generated data as follows:
@@ -86,7 +86,10 @@ CUDA_VISIBLE_DEVICES={} ./scripts/dist_train.sh {num_gpus} --cfg_file cfgs/scann
 - Testing
 ```bash
 cd tools/
+# test single pth
 python test.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt {your pth}
+# or test all checkpoints
+python test.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --extra_tag {your name} --eval_all
 # dist test is also supported
 CUDA_VISIBLE_DEVICES={} ./scripts/dist_test.sh {num_gpus} --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt {your pth}
 ```
@@ -100,18 +103,21 @@ CUDA_VISIBLE_DEVICES={} ./scripts/dist_train.sh {num_gpus} --cfg_file cfgs/sunrg
 - Testing
 ```bash
 cd tools/
+# test single pth
 python test.py --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt {your pth}
+# or test all checkpoints
+python test.py --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --extra_tag {your name} --eval_all
 # dist test is also supported
 CUDA_VISIBLE_DEVICES={} ./scripts/dist_test.sh {num_gpus} --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt {your pth}
 ```
 
 ### Main Results
-All models are trained with 4 3090 GPUs and the pretrained models will be released soon.
+We reproduce CAGroup3D based on [OpenPCDet](https://github.com/open-mmlab/OpenPCDet)(Paper reported is MMDet3D version). All models are trained with 4 3090 GPUs. The batch size of each card is 4 (2x8 is better). Please note that the pcdet version of scannet pretrained model has a higher mAP@50 (61.1 vs 60.3), but a lower mAP@25 (74.0 vs 74.5) than the original paper. Additionally, the sunrgbd pretrained model has a higher mAP@25 (67.1 vs 66.4) than the original paper. Since these two datasets fluctuate significantly, training more times should yield better results than the pre-trained models we provide.
 
-|   Dataset | mAP@0.25 | mAP0.50 | Pretrain Model (will soon) |
-|----------|----------:|:-------:|:-------:|
-| [ScanNet](tools/cfgs/scannet_models/CAGroup3D.yaml) | 75.1(74.5)  |	61.3(60.3) | [model](https://github.com/Haiyang-W/CAGroup3D) |
-| [Sun RGB-D](tools/cfgs/sunrgbd_models/CAGroup3D.yaml) | 66.8(66.4)   |	50.2(49.5) | [model](https://github.com/Haiyang-W/CAGroup3D) |
+|   Dataset | mAP@0.25 | mAP0.50 | mAP@0.25(repro) | mAP0.50(repro) | Pretrain Model && Log |
+|----------|----------:|:-------:|:-------:|:-------:|:-------:|
+| [ScanNet](tools/cfgs/scannet_models/CAGroup3D.yaml) | 74.5  |	60.3 | 74.0 | 61.1 | [model](https://drive.google.com/drive/folders/1lhd3kx-G-6vMVj51Ryjp20cibwOD1txq), [log](https://drive.google.com/drive/folders/1lhd3kx-G-6vMVj51Ryjp20cibwOD1txq) |
+| [Sun RGB-D](tools/cfgs/sunrgbd_models/CAGroup3D.yaml) | 66.4   |	49.5 | 67.1| 49.1| [model](https://drive.google.com/drive/folders/1mSmAxzHxEvXLd3IpxBsycdx9aigl7Wb3), [log](https://drive.google.com/drive/folders/1mSmAxzHxEvXLd3IpxBsycdx9aigl7Wb3) |
 
 ## Citation
 Please consider citing our work as follows if it is helpful.
