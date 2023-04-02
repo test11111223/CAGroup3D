@@ -142,15 +142,15 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 
 ## Performance / Pretrained model and logs ##
 
-- **epoch 1 only**. Out of time. Still need debugging.
+- Including our "epoch1" result, pretrained model from original author to validate our modified code, and potentially our "finetuned model" (`e8+1`, `e12+1`).
 
 |Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|
 |---|---|---|---|---|
 |Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|
-|`mAP_0.25`|2.6154|4.3875|~~74.0~~|~~67.1~~|
-|`mAP_0.50`|0.1057|0.7867|~~61.1~~|~~49.1~~|
-|`mAR_0.25`|8.0527|7.8397|n/a|n/a|
-|`mAR_0.50`|0.7545|2.0583|n/a|n/a|
+|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|
+|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|
+|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|
+|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|
 
 ## Hours for evaluation ##
 
