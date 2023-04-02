@@ -7,9 +7,9 @@ at::Tensor sort_vertices(at::Tensor vertices, at::Tensor mask, at::Tensor num_va
     CHECK_CONTIGUOUS(vertices);
     CHECK_CONTIGUOUS(mask);
     CHECK_CONTIGUOUS(num_valid);
-    CHECK_CUDA(vertices);
-    CHECK_CUDA(mask);
-    CHECK_CUDA(num_valid);
+    //CHECK_CUDA(vertices);
+    //CHECK_CUDA(mask);
+    //CHECK_CUDA(num_valid);
     CHECK_IS_FLOAT(vertices);
     CHECK_IS_BOOL(mask);
     CHECK_IS_INT(num_valid);

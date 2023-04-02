@@ -10,6 +10,7 @@ from .target_assigner.cagroup_proposal_target_layer import ProposalTargetLayer
 from pcdet.models.model_utils.cagroup_utils import CAGroupResidualCoder as ResidualCoder
 from pcdet.ops.iou3d_nms.iou3d_nms_utils import nms_gpu, nms_normal_gpu
 from pcdet.utils import common_utils
+from MinkowskiEngineBackend._C import is_cuda_available
 
 class SimplePoolingLayer(nn.Module):
     def __init__(self, channels=[128,128,128], grid_kernel_size = 5, grid_num = 7, voxel_size=0.04, coord_key=2,
@@ -51,6 +52,7 @@ class SimplePoolingLayer(nn.Module):
             grid_corners (optional): bxnum_roisx216, 8, 3
             box_centers: bxnum_rois, 4 (b,x,y,z)
         """
+        me_device = None if is_cuda_available() else "cpu"
         grid_coords = grid_points.long()
         grid_coords[:, 1:4] = torch.floor(grid_points[:, 1:4] / self.voxel_size) # get coords (grid conv center)
         grid_coords[:, 1:4] = torch.clamp(grid_coords[:, 1:4], min=-self.grid_size[0] / 2 + 1, max=self.grid_size[0] / 2 - 1) # -192 ~ 192
@@ -85,7 +87,7 @@ class SimplePoolingLayer(nn.Module):
             fake_grid_idx = fake_batch_idx.reshape([-1, 1, 1]).repeat(1, fake_grid_coords.shape[1], 1) 
             fake_grid_coords = torch.cat([fake_grid_idx, fake_grid_coords], dim=-1).reshape([-1, 4]).int()
 
-            grid_sp_tensor = ME.SparseTensor(coordinates=fake_grid_coords, features=new_features)
+            grid_sp_tensor = ME.SparseTensor(coordinates=fake_grid_coords, features=new_features, device=me_device)
             pooled_sp_tensor = self.pooling_conv(grid_sp_tensor, fake_center_coords) 
             pooled_sp_tensor = self.pooling_bn(pooled_sp_tensor) 
             return pooled_sp_tensor.F
@@ -451,7 +453,12 @@ class CAGroup3DRoIHead(nn.Module):
                     class_bboxes, torch.zeros_like(class_bboxes[:, :1])), dim=1)
                 nms_function = nms_normal_gpu
 
-            nms_ids, _ = nms_function(class_bboxes, class_scores, self.test_iou_thr)
+            nms_ids1, _ = nms_function(class_bboxes, class_scores, self.test_iou_thr)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().cpu() 
             nms_bboxes.append(class_bboxes[nms_ids])
             nms_scores.append(class_scores[nms_ids])
             nms_labels.append(bboxes.new_full(class_scores[nms_ids].shape, i, dtype=torch.long))
@@ -545,8 +552,10 @@ class CAGroup3DRoIHead(nn.Module):
             raise NotImplementedError
 
         rcnn_loss_cls = rcnn_loss_cls * self.loss_weight.RCNN_CLS_WEIGHT
-        tb_dict = {'rcnn_loss_cls': rcnn_loss_cls.item()}
-        return rcnn_loss_cls, tb_dict
+        # Must be in CPU afterward
+        rcnn_loss_cls1 = rcnn_loss_cls.clone().detach().cpu()
+        tb_dict = {'rcnn_loss_cls': rcnn_loss_cls1.item()}
+        return rcnn_loss_cls1, tb_dict
     
     def get_box_reg_layer_loss(self, forward_ret_dict):
         code_size = self.code_size
@@ -609,10 +618,14 @@ class CAGroup3DRoIHead(nn.Module):
         else:
             raise NotImplementedError
         
+        # Must be in CPU afterward
         if not self.use_iou_loss:
-            return rcnn_loss_reg, tb_dict
+            rcnn_loss_reg1 = rcnn_loss_reg.clone().detach().cpu()
+            return rcnn_loss_reg1, tb_dict
         else:
-            return rcnn_loss_reg, loss_iou, tb_dict
+            rcnn_loss_reg1 = rcnn_loss_reg.clone().detach().cpu()
+            loss_iou1 = loss_iou.clone().detach().cpu()
+            return rcnn_loss_reg1, loss_iou1, tb_dict
 
     def forward(self, input_dict):
         if self.training:

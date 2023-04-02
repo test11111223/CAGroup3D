@@ -75,9 +75,14 @@ class ProposalTargetLayer(nn.Module):
         """
         batch_size = batch_dict['batch_size']
         rois = batch_dict['rois']
-        roi_scores = batch_dict['roi_scores']
-        roi_labels = batch_dict['roi_labels']
-        gt_boxes = batch_dict['gt_boxes']
+        roi_scores1 = batch_dict['roi_scores']
+        roi_labels1 = batch_dict['roi_labels']
+        gt_boxes1 = batch_dict['gt_boxes']
+
+        #Don't want to import ME again. Use rois instead.
+        roi_scores = roi_scores1.clone().detach().to(rois.device)
+        roi_labels = roi_labels1.clone().detach().to(rois.device)
+        gt_boxes = gt_boxes1 #.clone().detach().to(rois.device)
 
         code_size = rois.shape[-1]
         batch_rois = rois.new_zeros(batch_size, self.roi_sampler_cfg.ROI_PER_IMAGE, code_size)
@@ -101,7 +106,8 @@ class ProposalTargetLayer(nn.Module):
                     gt_boxes=cur_gt[:, 0:7], gt_labels=cur_gt[:, -1].long()
                 )
             else:
-                iou3d = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt[:, 0:7])  # (M, N)
+                iou3d1 = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt[:, 0:7])  # (M, N)
+                iou3d = iou3d1.clone().to(max_overlaps.device)  
                 max_overlaps, gt_assignment = torch.max(iou3d, dim=1)
 
             sampled_inds = self.subsample_rois(max_overlaps=max_overlaps)
@@ -218,9 +224,10 @@ class ProposalTargetLayer(nn.Module):
             if roi_mask.sum() > 0 and gt_mask.sum() > 0:
                 cur_roi = rois[roi_mask]
                 cur_gt = gt_boxes[gt_mask]
-                original_gt_assignment = gt_mask.nonzero().view(-1)
+                original_gt_assignment = gt_mask.nonzero().view(-1).to(max_overlaps.device)  #Don't know why it was in cuda
 
-                iou3d = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d1 = iou3d_nms_utils.boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d = iou3d1.clone().to(max_overlaps.device)  
                 cur_max_overlaps, cur_gt_assignment = torch.max(iou3d, dim=1)
                 max_overlaps[roi_mask] = cur_max_overlaps
                 gt_assignment[roi_mask] = original_gt_assignment[cur_gt_assignment]

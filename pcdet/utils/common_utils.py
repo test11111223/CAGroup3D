@@ -4,7 +4,7 @@ import pickle
 import random
 import shutil
 import subprocess
-import SharedArray
+from multiprocessing import shared_memory
 
 import numpy as np
 import torch
@@ -82,7 +82,7 @@ def get_voxel_centers(voxel_coords, downsample_times, voxel_size, point_cloud_ra
     return voxel_centers
 
 
-def create_logger(log_file=None, rank=0, log_level=logging.INFO):
+def create_logger(log_file=None, rank=0, log_level=logging.DEBUG):
     logger = logging.getLogger(__name__)
     logger.setLevel(log_level if rank == 0 else 'ERROR')
     formatter = logging.Formatter('%(asctime)s  %(levelname)5s  %(message)s')
@@ -132,7 +132,7 @@ def keep_arrays_by_name(gt_names, used_classes):
     return inds
 
 
-def init_dist_slurm(tcp_port, local_rank, backend='nccl'):
+def init_dist_slurm(tcp_port, local_rank, backend='gloo'):
     """
     modified from https://github.com/open-mmlab/mmdetection
     Args:
@@ -159,7 +159,7 @@ def init_dist_slurm(tcp_port, local_rank, backend='nccl'):
     return total_gpus, rank
 
 
-def init_dist_pytorch(tcp_port, local_rank, backend='nccl'):
+def init_dist_pytorch(tcp_port, local_rank, backend='gloo'):
     if mp.get_start_method(allow_none=True) is None:
         mp.set_start_method('spawn')
     # os.environ['MASTER_PORT'] = str(tcp_port)
@@ -244,11 +244,20 @@ def generate_voxel2pinds(sparse_tensor):
 
 
 def sa_create(name, var):
-    x = SharedArray.create(name, var.shape, dtype=var.dtype)
+    shm = shared_memory.SharedMemory(create=True, size=var.nbytes, name=name)    
+    x = np.ndarray(var.shape, dtype=var.dtype, buffer=shm.buf)
     x[...] = var[...]
     x.flags.writeable = False
     return x
 
+def sa_attach(name, shape, dtype):
+    shm = shared_memory.SharedMemory(name=name)
+    x = np.ndarray(shape, dtype=dtype, buffer=shm.buf)
+    return x
+
+def sa_delete(name):
+    shm = shared_memory.SharedMemory(name=name)
+    shm.close()
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""

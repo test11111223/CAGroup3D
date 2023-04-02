@@ -35,7 +35,7 @@ inline float max(float a, float b){
     return a > b ? a : b;
 }
 
-const float EPS = 1e-8;
+constexpr double EPS = 1e-8;
 struct Point {
     float x, y;
     __device__ Point() {}

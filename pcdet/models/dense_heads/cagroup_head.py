@@ -10,6 +10,12 @@ from pcdet.utils.loss_utils import CrossEntropy, SmoothL1Loss, FocalLoss
 from pcdet.utils.iou3d_loss import IoU3DLoss
 from pcdet.models.model_utils.cagroup_utils import reduce_mean, parse_params, Scale, bias_init_with_prob
 from pcdet.ops.iou3d_nms.iou3d_nms_utils import nms_gpu, nms_normal_gpu
+from MinkowskiEngineBackend._C import is_cuda_available
+
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 class CAGroup3DHead(nn.Module):
     def __init__(self,
@@ -198,6 +204,7 @@ class CAGroup3DHead(nn.Module):
             nn.init.normal_(self.cls_individual_out[cls_id][0].kernel, std=.01)
 
     def forward(self, input_dict, return_middle_feature=True):
+        me_device = None if is_cuda_available() else "cpu"
         batch_size = input_dict['batch_size']
         outs = []
         out = input_dict['sp_tensor'] # semantic input from backbone3d
@@ -255,7 +262,7 @@ class CAGroup3DHead(nn.Module):
             voxel_coord = fuse_coordinates.clone().int()
             voxel_coord[:, 1:] = (fuse_coordinates[:, 1:] / voxel_size).floor()
             cls_individual_map = ME.SparseTensor(coordinates=voxel_coord, features=fuse_features,
-                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
             cls_individual_map = self.cls_individual_out[cls_id](cls_individual_map)
 
             # expand feature map
@@ -263,18 +270,18 @@ class CAGroup3DHead(nn.Module):
             expand = self.expand
             cls_voxel_coord[:, 1:] = (fuse_coordinates[:, 1:] / (voxel_size * expand)).floor()
             cls_individual_map_expand = ME.SparseTensor(coordinates=cls_voxel_coord, features=fuse_features,
-                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                    quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
             expand_coord = cls_individual_map_expand.C
             expand_coord[:, 1:] *= expand
             cls_individual_map_expand = ME.SparseTensor(coordinates=expand_coord, features=cls_individual_map_expand.F,
                                                         tensor_stride=expand,
-                                                        quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE)
+                                                        quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE, device=me_device)
 
             cls_individual_map_expand = self.cls_individual_expand_out[cls_id](cls_individual_map_expand)
             cls_individual_map_up = self.cls_individual_up[cls_id][0](cls_individual_map_expand, cls_individual_map.C)
             cls_individual_map_up = self.cls_individual_up[cls_id][1](cls_individual_map_up)
             cls_individual_map_out = ME.SparseTensor(coordinates=cls_individual_map.C,
-                                                    features=torch.cat([cls_individual_map_up.F, cls_individual_map.F], dim=-1))
+                                                    features=torch.cat([cls_individual_map_up.F, cls_individual_map.F], dim=-1), device=me_device)
             cls_individual_map_out = self.cls_individual_fuse[cls_id](cls_individual_map_out)
 
             prediction = self.forward_single(cls_individual_map_out, self.scales[cls_id], self.voxel_size_list[cls_id])
@@ -298,14 +305,21 @@ class CAGroup3DHead(nn.Module):
             if 'gt_boxes' in input_dict.keys() and 'gt_bboxes_3d' not in input_dict.keys():
                 gt_bboxes_3d = []
                 gt_labels_3d = []
-                device = input_dict['points'].device
+                device = 'cpu' if type(input_dict['points']).__module__ == np.__name__ else input_dict['points'].device
                 for b in range(len(input_dict['gt_boxes'])):
                     gt_bboxes_b = []
                     gt_labels_b = []
                     for _item in input_dict['gt_boxes'][b]:
+                        #Both np and torch has all()
                         if not (_item == 0.).all(): 
-                            gt_bboxes_b.append(_item[:7])  
-                            gt_labels_b.append(_item[7:8]) 
+                            gt_bboxes_b_item = _item[:7]
+                            gt_labels_b_item = _item[7:8]
+                            if type(gt_bboxes_b_item).__module__ == np.__name__:
+                                gt_bboxes_b_item =  torch.from_numpy(gt_bboxes_b_item)
+                            if type(gt_labels_b_item).__module__ == np.__name__:
+                                gt_labels_b_item =  torch.from_numpy(gt_labels_b_item)
+                            gt_bboxes_b.append(gt_bboxes_b_item)  
+                            gt_labels_b.append(gt_labels_b_item) 
                     if len(gt_bboxes_b) == 0:
                         gt_bboxes_b = torch.zeros((0, 7), dtype=torch.float32).to(device)
                         gt_labels_b = torch.zeros((0,), dtype=torch.int).to(device)
@@ -412,30 +426,47 @@ class CAGroup3DHead(nn.Module):
                      pts_semantic_mask,
                      pts_instance_mask):
         with torch.no_grad():
-            semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes, gt_labels, self.n_classes)
-            centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes, gt_labels)
+            original_points_knn = original_points.clone().detach().to(scene_points.device)
+            if is_cuda_available():
+                gt_bboxes1 = gt_bboxes
+                gt_labels1 = gt_labels
+                scene_points1 = scene_points
+                pts_semantic_mask1 = pts_semantic_mask
+                pts_instance_mask1 = pts_instance_mask
+                original_points1 = original_points
+            else:
+                gt_bboxes1 = gt_bboxes.clone().detach().cpu()
+                gt_labels1 = gt_labels.clone().detach().cpu()
+                scene_points1 = scene_points.clone().detach().cpu()
+                pts_semantic_mask1 =  pts_semantic_mask.clone().detach().cpu() if pts_semantic_mask is not None else None
+                pts_instance_mask1 = pts_instance_mask.clone().detach().cpu() if pts_instance_mask is not None else None
+                original_points1 = original_points.clone().detach().cpu()
+
+            semantic_labels, ins_labels = self.assigner.assign_semantic(semantic_points, gt_bboxes1, gt_labels1, self.n_classes)
+            centerness_targets, bbox_targets, labels = self.assigner.assign(points, gt_bboxes1, gt_labels1)
             # compute offset targets
             if self.with_yaw:
-                num_points = original_points.shape[0]
-                vote_targets = original_points.new_zeros([num_points, 3 * self.gt_per_seed])
-                vote_target_masks = original_points.new_zeros([num_points],
+                num_points = original_points1.shape[0]
+                vote_targets = original_points1.new_zeros([num_points, 3 * self.gt_per_seed])
+                vote_target_masks = original_points1.new_zeros([num_points],
                                                     dtype=torch.long)
-                vote_target_idx = original_points.new_zeros([num_points], dtype=torch.long)
-                box_indices_all = find_points_in_boxes(points=original_points, gt_bboxes=gt_bboxes) # n_points. n_boxes
-                for i in range(gt_labels.shape[0]):
+                vote_target_idx = original_points1.new_zeros([num_points], dtype=torch.long)
+                box_indices_all = find_points_in_boxes(points=original_points1, gt_bboxes=gt_bboxes1) # n_points. n_boxes
+                for i in range(gt_labels1.shape[0]):
                     box_indices = box_indices_all[:, i]
-                    indices = torch.nonzero(
-                        box_indices, as_tuple=False).squeeze(-1)
-                    selected_points = original_points[indices]
+                    indices1 = torch.nonzero(
+                        box_indices, as_tuple=False).squeeze(-1).to(scene_points1.device) 
+                    indices = [a.item() for a in indices1 if a < len(scene_points1)]   
+                    selected_points = original_points1[indices]
                     vote_target_masks[indices] = 1
                     vote_targets_tmp = vote_targets[indices]
-                    votes = gt_bboxes[i, :3].unsqueeze(
+                    votes = gt_bboxes1[i, :3].unsqueeze(
                         0).to(selected_points.device) - selected_points[:, :3]
 
                     for j in range(self.gt_per_seed):
                         column_indices = torch.nonzero(
                             vote_target_idx[indices] == j,
-                            as_tuple=False).squeeze(-1)
+                            as_tuple=False).squeeze(-1).to(scene_points1.device) 
                         vote_targets_tmp[column_indices,
                                         int(j * 3):int(j * 3 +
                                                         3)] = votes[column_indices]
@@ -452,23 +483,70 @@ class CAGroup3DHead(nn.Module):
                 offset_masks.append(vote_target_masks)
             
             elif pts_semantic_mask is not None and pts_instance_mask is not None:
-                allp_offset_targets = torch.zeros_like(scene_points[:, :3])
-                allp_offset_masks = scene_points.new_zeros(len(scene_points))
-                instance_center = scene_points.new_zeros((pts_instance_mask.max()+1, 3))
-                instance_match_gt_id = -scene_points.new_ones((pts_instance_mask.max()+1)).long()
-                for i in torch.unique(pts_instance_mask):
-                    indices = torch.nonzero(
-                        pts_instance_mask == i, as_tuple=False).squeeze(-1)
-                    if pts_semantic_mask[indices[0]] < self.n_classes:
-                        selected_points = scene_points[indices, :3]
-                        center = 0.5 * (
-                                selected_points.min(0)[0] + selected_points.max(0)[0])
+                #+1 for ME CPU?
+                allp_offset_targets = torch.zeros_like(scene_points1[:, :3]).to(scene_points1.device)                   
+                allp_offset_masks = scene_points1.new_zeros(len(scene_points1) + 1).to(scene_points1.device)                   
+                instance_center = scene_points1.new_zeros((pts_instance_mask1.max() + 1, 3)).to(scene_points1.device)                   
+                instance_match_gt_id = -scene_points1.new_ones((pts_instance_mask1.max() + 1)).to(scene_points1.device).long()
+                for i in torch.unique(pts_instance_mask1):
+                    #IndexError: index 0 is out of bounds for dimension 0 with size 0
+                    #i = i0 if is_cuda_available() else i0 - 1 
+                    #CUDA error: device-side assert triggered.
+                    #i = i0
+                    indices1 = torch.nonzero(
+                        pts_instance_mask1 == i, as_tuple=False).squeeze(-1).to(scene_points1.device)                   
+                    if (pts_semantic_mask1[indices1[0]] < self.n_classes):
+                        #IndexError: index 99940 is out of bounds for dimension 0 with size 97088
+                        #Works (Up to 179152)
+                        indices = [a.item() for a in indices1 if a < len(scene_points1)]   
+
+                        if len(indices) == 0:
+                            instance_center[i] = torch.ones_like(instance_center[i]) * (-10000.)
+                            instance_match_gt_id[i] = -1              
+                            continue           
+
+                        selected_points = scene_points1[indices, :3]
+                        #selected_points: torch.Size([85, 3])
+                        #scene_points1: torch.Size([97088, 6])
+                        #raise AssertionError("{}, {}".format(selected_points.size(), scene_points1.size()))
+                        #IndexError: min(): Expected reduction dim 0 to have non-zero size.
+                        center = 0.5 * (selected_points.min(0)[0] + selected_points.max(0)[0])    
+                        # Device mismatch?
+                        #if is_cuda_available():
+                        #    center = center1
+                        #else:
+                        #    continue
+                            #center = center1.clone()
+                            #center = center.detach()
+                            #CUDA error: device-side assert triggered.
+                            #center = center.cpu()
+
+                        assert max(indices) < len(allp_offset_masks), "{}, {}, {}".format(allp_offset_targets.size(), allp_offset_masks.size(), indices)
                         allp_offset_targets[indices, :] = center - selected_points
-                        allp_offset_masks[indices] = 1
-                        match_gt_id = torch.argmin(torch.cdist(center.view(1, 1, 3),
-                                                                gt_bboxes[:, :3].unsqueeze(0).to(center.device)).view(-1))
+                        #IndexError: too many indices for tensor of dimension 1
+                        #indices = [tensor(72402), tensor(74158)]
+                        #case to int
+                        #try:
+                        allp_offset_masks[indices] = 1    
+                        #except:
+                        #    raise AssertionError("{}, {}, {}".format(allp_offset_targets.size(), allp_offset_masks.size(), indices))
+                        tmp0 = center.view(1, 1, 3).to(center.device)
+                       
+                        #gt_bboxes1: torch.Size([27, 7])
+                        #Prevent cpu()
+                        tmp1 = gt_bboxes1[:, :3].unsqueeze(0).to(center.device)               
+
+                        #CUDA error: CUBLAS_STATUS_NOT_INITIALIZED when calling `cublasCreate(handle)`
+                        #tmp2 = tmp0.clone().detach().cpu()
+                        #tmp3 = tmp1.clone().detach().cpu()
+                      
+                        match_gt_id = torch.argmin(torch.cdist(tmp0,tmp1).view(-1))
+
+                        assert i < len(instance_match_gt_id), "instance_match_gt_id out of bound ({})".format(i)
+                        assert i < len(instance_center), "instance_center out of bound ({})".format(i)
+                        assert match_gt_id < len(gt_bboxes1[:, :3]), "match_gt_id out of bound ({})".format(match_gt_id)
                         instance_match_gt_id[i] = match_gt_id
-                        instance_center[i] = gt_bboxes[:, :3][match_gt_id].to(center.device)
+                        instance_center[i] = gt_bboxes1[:, :3][match_gt_id].to(center.device)
                     else:
                         instance_center[i] = torch.ones_like(instance_center[i]) * (-10000.)
                         instance_match_gt_id[i] = -1
@@ -477,19 +555,22 @@ class CAGroup3DHead(nn.Module):
                 offset_targets = []
                 offset_masks = []
                 knn_number = 1
-                idx = knn(knn_number, scene_points[None, :, :3].contiguous(), original_points[None, ::])[0].long()
-                instance_idx = pts_instance_mask[idx.view(-1)].view(idx.shape[0], idx.shape[1])
+                assert scene_points.device == original_points_knn.device, "Device mismatch: {} vs {}".format(scene_points.device, original_points_knn.device)
+                idx1 = knn(knn_number, scene_points[None, :, :3].contiguous(), original_points_knn[None, ::])[0].long()
+                # RuntimeError: indices should be either on cpu or on the same device as the indexed tensor (cpu)
+                idx = idx1.clone().detach().to(pts_instance_mask1.device)
+                instance_idx = pts_instance_mask1[idx.view(-1)].view(idx.shape[0], idx.shape[1])
 
                 # condition1: all the points must belong to one instance
                 valid_mask = (instance_idx == instance_idx[0]).all(0)
 
-                max_instance_num = pts_instance_mask.max()+1
+                max_instance_num = pts_instance_mask1.max()+1
                 arange_tensor = torch.arange(max_instance_num).unsqueeze(1).unsqueeze(2).to(instance_idx.device)
                 arange_tensor = arange_tensor.repeat(1, instance_idx.shape[0], instance_idx.shape[1]) # instance_num, k, points
                 instance_idx = instance_idx[None, ::].repeat(max_instance_num, 1, 1)
 
                 max_instance_idx = torch.argmax((instance_idx == arange_tensor).sum(1), dim=0)
-                offset_t = instance_center[max_instance_idx] - original_points
+                offset_t = instance_center[max_instance_idx] - original_points1
                 offset_m = torch.where(offset_t < -100., torch.zeros_like(offset_t), torch.ones_like(offset_t)).all(1)
                 offset_t = torch.where(offset_t < -100., torch.zeros_like(offset_t), offset_t)
                 offset_m *= valid_mask
@@ -542,16 +623,29 @@ class CAGroup3DHead(nn.Module):
             loss_centerness = self.loss_centerness(
                 pos_centerness, pos_centerness_targets, avg_factor=n_pos
             )
-            loss_bbox = self.loss_bbox(
+            loss_bbox0 = self.loss_bbox(
                 self._bbox_pred_to_bbox(pos_points, pos_bbox_preds),
                 pos_bbox_targets,
                 weight=pos_centerness_targets.squeeze(1),
                 avg_factor=centerness_denorm
             )
+            # RuntimeError: Expected to have finished reduction in the prior iteration before starting a new one. 
+            if is_cuda_available():
+                loss_bbox = loss_bbox0
+            else:
+                torch.cuda.synchronize()
+                loss_bbox = loss_bbox0.clone().cpu()
         else:
-            loss_centerness = pos_centerness.sum()
-            loss_bbox = pos_bbox_preds.sum()
+            loss_centerness = pos_centerness.sum().cpu()
+            loss_bbox = pos_bbox_preds.sum().cpu()
         
+        #raise AssertionError("{} {} {} {} {}".format(loss_centerness.device, loss_bbox.device, loss_cls.device, loss_sem.device, loss_offset.device))
+        #assert loss_centerness.device == "cpu", "loss_centerness: {}".format(loss_centerness.device)
+        #assert loss_bbox.device == "cpu", "loss_bbox: {}".format(loss_bbox.device)
+        #assert loss_cls.device == "cpu", "loss_cls: {}".format(loss_cls.device)
+        #assert loss_sem.device == "cpu", "loss_sem: {}".format(loss_sem.device)
+        #assert loss_offset.device == "cpu", "loss_offset: {}".format(loss_offset.device)
+
         return loss_centerness, loss_bbox, loss_cls, loss_sem, loss_offset
 
     def get_bboxes(self,
@@ -628,10 +722,11 @@ class CAGroup3DHead(nn.Module):
         centerness = self.centerness_conv(x).features
         scores = self.cls_conv(x)
         cls_score = scores.features
+        me_device = None if is_cuda_available() else "cpu"
         prune_scores = ME.SparseTensor(
             scores.features.max(dim=1, keepdim=True).values,
             coordinate_map_key=scores.coordinate_map_key,
-            coordinate_manager=scores.coordinate_manager)
+            coordinate_manager=scores.coordinate_manager, device=me_device)
         reg_final = self.reg_conv(x).features
         reg_distance = torch.exp(scale(reg_final[:, :6]))
         reg_angle = reg_final[:, 6:]
@@ -729,7 +824,12 @@ class CAGroup3DHead(nn.Module):
             correct_class_bboxes = class_bboxes.clone()
             if yaw_flag:
                 correct_class_bboxes[..., 6] *= -1
-            nms_ids, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            nms_ids1, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().cpu() 
             nms_bboxes = class_bboxes[nms_ids]
             nms_scores = class_scores[nms_ids]
             nms_labels = class_labels[nms_ids]
@@ -768,7 +868,12 @@ class CAGroup3DHead(nn.Module):
             correct_class_bboxes = class_bboxes.clone()
             if yaw_flag:
                 correct_class_bboxes[..., 6] *= -1
-            nms_ids, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            nms_ids1, _ = nms_function(correct_class_bboxes, class_scores, self.nms_cfg.IOU_THR)
+            if is_cuda_available():
+                nms_ids = nms_ids1
+            else:
+                torch.cuda.synchronize()
+                nms_ids = nms_ids1.clone().cpu()  
             nms_bboxes.append(class_bboxes[nms_ids])
             nms_scores.append(class_scores[nms_ids])
             nms_labels.append(bboxes.new_full(class_scores[nms_ids].shape, i, dtype=torch.long))

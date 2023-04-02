@@ -6,12 +6,13 @@ All Rights Reserved 2019-2020.
 
 
 #include <stdio.h>
+#include <cstdint>
 #define THREADS_PER_BLOCK 16
 #define DIVUP(m, n) ((m) / (n) + ((m) % (n) > 0))
 
 // #define DEBUG
-const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8;
-const float EPS = 1e-8;
+const int THREADS_PER_BLOCK_NMS = sizeof(uint64_t) * 8;
+constexpr double EPS = 1e-8;
 struct Point {
     float x, y;
     __device__ Point() {}
@@ -40,7 +41,7 @@ __device__ inline float cross(const Point &p1, const Point &p2, const Point &p0)
     return (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y);
 }
 
-__device__ int check_rect_cross(const Point &p1, const Point &p2, const Point &q1, const Point &q2){
+__device__ inline int check_rect_cross(const Point &p1, const Point &p2, const Point &q1, const Point &q2){
     int ret = min(p1.x,p2.x) <= max(q1.x,q2.x)  &&
               min(q1.x,q2.x) <= max(p1.x,p2.x) &&
               min(p1.y,p2.y) <= max(q1.y,q2.y) &&
@@ -265,7 +266,7 @@ __global__ void boxes_iou_bev_kernel(const int num_a, const float *boxes_a, cons
 }
 
 __global__ void nms_kernel(const int boxes_num, const float nms_overlap_thresh,
-                           const float *boxes, unsigned long long *mask){
+                           const float *boxes, uint64_t *mask){
     //params: boxes (N, 7) [x, y, z, dx, dy, dz, heading]
     //params: mask (N, N/THREADS_PER_BLOCK_NMS)
 
@@ -295,7 +296,7 @@ __global__ void nms_kernel(const int boxes_num, const float nms_overlap_thresh,
         const float *cur_box = boxes + cur_box_idx * 7;
 
         int i = 0;
-        unsigned long long t = 0;
+        uint64_t t = 0;
         int start = 0;
         if (row_start == col_start) {
           start = threadIdx.x + 1;
@@ -326,7 +327,7 @@ __device__ inline float iou_normal(float const * const a, float const * const b)
 
 
 __global__ void nms_normal_kernel(const int boxes_num, const float nms_overlap_thresh,
-                           const float *boxes, unsigned long long *mask){
+                           const float *boxes, uint64_t *mask){
     //params: boxes (N, 7) [x, y, z, dx, dy, dz, heading]
     //params: mask (N, N/THREADS_PER_BLOCK_NMS)
 
@@ -356,7 +357,7 @@ __global__ void nms_normal_kernel(const int boxes_num, const float nms_overlap_t
         const float *cur_box = boxes + cur_box_idx * 7;
 
         int i = 0;
-        unsigned long long t = 0;
+        uint64_t t = 0;
         int start = 0;
         if (row_start == col_start) {
           start = threadIdx.x + 1;
@@ -398,7 +399,7 @@ void boxesioubevLauncher(const int num_a, const float *boxes_a, const int num_b,
 }
 
 
-void nmsLauncher(const float *boxes, unsigned long long * mask, int boxes_num, float nms_overlap_thresh){
+void nmsLauncher(const float *boxes, uint64_t * mask, int boxes_num, float nms_overlap_thresh){
     dim3 blocks(DIVUP(boxes_num, THREADS_PER_BLOCK_NMS),
                 DIVUP(boxes_num, THREADS_PER_BLOCK_NMS));
     dim3 threads(THREADS_PER_BLOCK_NMS);
@@ -406,7 +407,7 @@ void nmsLauncher(const float *boxes, unsigned long long * mask, int boxes_num, f
 }
 
 
-void nmsNormalLauncher(const float *boxes, unsigned long long * mask, int boxes_num, float nms_overlap_thresh){
+void nmsNormalLauncher(const float *boxes, uint64_t * mask, int boxes_num, float nms_overlap_thresh){
     dim3 blocks(DIVUP(boxes_num, THREADS_PER_BLOCK_NMS),
                 DIVUP(boxes_num, THREADS_PER_BLOCK_NMS));
     dim3 threads(THREADS_PER_BLOCK_NMS);

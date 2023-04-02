@@ -3,7 +3,6 @@ import pickle
 import os
 import copy
 import numpy as np
-import SharedArray
 import torch.distributed as dist
 
 from ...ops.iou3d_nms import iou3d_nms_utils
@@ -48,6 +47,8 @@ class DataBaseSampler(object):
                 'indices': np.arange(len(self.db_infos[class_name]))
             }
 
+        self.shm_infos = {}
+
     def __getstate__(self):
         d = dict(self.__dict__)
         del d['logger']
@@ -62,7 +63,7 @@ class DataBaseSampler(object):
             cur_rank, num_gpus = common_utils.get_dist_info()
             sa_key = self.sampler_cfg.DB_DATA_PATH[0]
             if cur_rank % num_gpus == 0 and os.path.exists(f"/dev/shm/{sa_key}"):
-                SharedArray.delete(f"shm://{sa_key}")
+                common_utils.sa_delete(f"shm://{sa_key}")
 
             if num_gpus > 1:
                 dist.barrier()
@@ -79,6 +80,8 @@ class DataBaseSampler(object):
         if cur_rank % num_gpus == 0 and not os.path.exists(f"/dev/shm/{sa_key}"):
             gt_database_data = np.load(db_data_path)
             common_utils.sa_create(f"shm://{sa_key}", gt_database_data)
+            print(f"shm://{sa_key}", gt_database_data.shapes, gt_database_data.dtype)
+            self.shm_infos[f"shm://{sa_key}"] = (gt_database_data.shapes, gt_database_data.dtype)
             
         if num_gpus > 1:
             dist.barrier()
@@ -167,8 +170,14 @@ class DataBaseSampler(object):
 
         obj_points_list = []
         if self.use_shared_memory:
-            gt_database_data = SharedArray.attach(f"shm://{self.gt_database_data_key}")
-            gt_database_data.setflags(write=0)
+            if f"shm://{self.gt_database_data_key}" in self.shm_infos:
+                shm_shapes, shm_dtype = self.shm_infos[f"shm://{self.gt_database_data_key}"]
+                print("Hit", f"shm://{self.gt_database_data_key}", shm_shapes, shm_dtype)
+                gt_database_data = common_utils.sa_attach(f"shm://{self.gt_database_data_key}", shm_shapes, shm_dtype).copy()
+                gt_database_data.setflags(write=0)
+            else:
+                gt_database_data = None 
+                print("Miss", f"shm://{self.gt_database_data_key}", points.shapes, points.dtype)
         else:
             gt_database_data = None 
 

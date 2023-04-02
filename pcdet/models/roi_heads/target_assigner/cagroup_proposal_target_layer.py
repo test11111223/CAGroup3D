@@ -228,9 +228,10 @@ class ProposalTargetLayer(nn.Module):
             if roi_mask.sum() > 0 and gt_mask.sum() > 0:
                 cur_roi = rois[roi_mask]
                 cur_gt = gt_boxes[gt_mask]
-                original_gt_assignment = gt_mask.nonzero().view(-1)
+                original_gt_assignment = gt_mask.nonzero().view(-1).to(max_overlaps.device)  #Don't know why it was in cuda
 
-                iou3d = boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d1 = boxes_iou3d_gpu(cur_roi, cur_gt)  # (M, N)
+                iou3d = iou3d1.clone().to(max_overlaps.device)  
                 cur_max_overlaps, cur_gt_assignment = torch.max(iou3d, dim=1)
                 max_overlaps[roi_mask] = cur_max_overlaps
                 gt_assignment[roi_mask] = original_gt_assignment[cur_gt_assignment]

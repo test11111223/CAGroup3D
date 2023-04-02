@@ -4,6 +4,7 @@ import torch
 import MinkowskiEngine as ME
 import numpy as np
 import pdb
+from MinkowskiEngineBackend._C import is_cuda_available
 
 class CAGroup3D(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -15,13 +16,15 @@ class CAGroup3D(Detector3DTemplate):
         self.semantic_iter_value = self.model_cfg.SEMANTIC_ITER_VALUE
         self.semantic_value = self.model_cfg.SEMANTIC_THR
     
-    def voxelization(self, points):
+    def voxelization(self, points1):
         """voxelize input points."""
         # points Nx7 (bs_id, x, y, z, r, g, b)
+        me_device = None if is_cuda_available() else "cpu"
+        points = torch.from_numpy(points1) if type(points1).__module__ == np.__name__ else points1
         coordinates = points[:, :4].clone()
         coordinates[:, 1:] /= self.voxel_size
         features = points[:, 4:].clone()
-        sp_tensor = ME.SparseTensor(coordinates=coordinates, features=features)
+        sp_tensor = ME.SparseTensor(coordinates=coordinates, features=features, device=me_device)
         return sp_tensor
 
     def forward(self, batch_dict):
@@ -35,6 +38,8 @@ class CAGroup3D(Detector3DTemplate):
         batch_dict['sp_tensor'] = sp_tensor
         
         for cur_module in self.module_list:
+            if not is_cuda_available():
+                cur_module.cpu()
             results = cur_module(batch_dict)
             batch_dict.update(results)
 

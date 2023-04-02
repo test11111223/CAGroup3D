@@ -6,4 +6,3 @@ easydict
 pyyaml
 scikit-image
 tqdm
-SharedArray

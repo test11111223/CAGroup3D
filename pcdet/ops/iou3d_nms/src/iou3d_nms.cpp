@@ -37,13 +37,13 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-const int THREADS_PER_BLOCK_NMS = sizeof(unsigned long long) * 8;
+const int THREADS_PER_BLOCK_NMS = sizeof(uint64_t) * 8;
 
 
 void boxesoverlapLauncher(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_overlap);
 void boxesioubevLauncher(const int num_a, const float *boxes_a, const int num_b, const float *boxes_b, float *ans_iou);
-void nmsLauncher(const float *boxes, unsigned long long * mask, int boxes_num, float nms_overlap_thresh);
-void nmsNormalLauncher(const float *boxes, unsigned long long * mask, int boxes_num, float nms_overlap_thresh);
+void nmsLauncher(const float *boxes, uint64_t * mask, int boxes_num, float nms_overlap_thresh);
+void nmsNormalLauncher(const float *boxes, uint64_t * mask, int boxes_num, float nms_overlap_thresh);
 
 
 int boxes_overlap_bev_gpu(at::Tensor boxes_a, at::Tensor boxes_b, at::Tensor ans_overlap){
@@ -95,26 +95,27 @@ int nms_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
 
     int boxes_num = boxes.size(0);
     const float * boxes_data = boxes.data<float>();
-    long * keep_data = keep.data<long>();
+    int64_t * keep_data = keep.data<int64_t>();
 
     const int col_blocks = DIVUP(boxes_num, THREADS_PER_BLOCK_NMS);
 
-    unsigned long long *mask_data = NULL;
-    CHECK_ERROR(cudaMalloc((void**)&mask_data, boxes_num * col_blocks * sizeof(unsigned long long)));
+    uint64_t *mask_data = NULL;
+    CHECK_ERROR(cudaMalloc((void**)&mask_data, boxes_num * col_blocks * sizeof(uint64_t)));
     nmsLauncher(boxes_data, mask_data, boxes_num, nms_overlap_thresh);
 
-    // unsigned long long mask_cpu[boxes_num * col_blocks];
-    // unsigned long long *mask_cpu = new unsigned long long [boxes_num * col_blocks];
-    std::vector<unsigned long long> mask_cpu(boxes_num * col_blocks);
+    // uint64_t mask_cpu[boxes_num * col_blocks];
+    // uint64_t *mask_cpu = new uint64_t [boxes_num * col_blocks];
+    std::vector<uint64_t> mask_cpu(boxes_num * col_blocks);
 
-//    printf("boxes_num=%d, col_blocks=%d\n", boxes_num, col_blocks);
-    CHECK_ERROR(cudaMemcpy(&mask_cpu[0], mask_data, boxes_num * col_blocks * sizeof(unsigned long long),
+    // printf("boxes_num=%d, col_blocks=%d\n", boxes_num, col_blocks);
+    CHECK_ERROR(cudaMemcpy(&mask_cpu[0], mask_data, boxes_num * col_blocks * sizeof(uint64_t),
                            cudaMemcpyDeviceToHost));
 
     cudaFree(mask_data);
 
-    unsigned long long remv_cpu[col_blocks];
-    memset(remv_cpu, 0, col_blocks * sizeof(unsigned long long));
+    //uint64_t remv_cpu[col_blocks];
+    uint64_t *remv_cpu = new uint64_t[col_blocks];
+    memset(remv_cpu, 0, col_blocks * sizeof(uint64_t));
 
     int num_to_keep = 0;
 
@@ -124,7 +125,7 @@ int nms_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
 
         if (!(remv_cpu[nblock] & (1ULL << inblock))){
             keep_data[num_to_keep++] = i;
-            unsigned long long *p = &mask_cpu[0] + i * col_blocks;
+            uint64_t *p = &mask_cpu[0] + i * col_blocks;
             for (int j = nblock; j < col_blocks; j++){
                 remv_cpu[j] |= p[j];
             }
@@ -143,28 +144,29 @@ int nms_normal_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
     CHECK_INPUT(boxes);
     CHECK_CONTIGUOUS(keep);
 
-    int boxes_num = boxes.size(0);
+    int64_t boxes_num = boxes.size(0);
     const float * boxes_data = boxes.data<float>();
-    long * keep_data = keep.data<long>();
+    int64_t * keep_data = keep.data<int64_t>();
 
     const int col_blocks = DIVUP(boxes_num, THREADS_PER_BLOCK_NMS);
 
-    unsigned long long *mask_data = NULL;
-    CHECK_ERROR(cudaMalloc((void**)&mask_data, boxes_num * col_blocks * sizeof(unsigned long long)));
+    uint64_t *mask_data = NULL;
+    CHECK_ERROR(cudaMalloc((void**)&mask_data, boxes_num * col_blocks * sizeof(uint64_t)));
     nmsNormalLauncher(boxes_data, mask_data, boxes_num, nms_overlap_thresh);
 
-    // unsigned long long mask_cpu[boxes_num * col_blocks];
-    // unsigned long long *mask_cpu = new unsigned long long [boxes_num * col_blocks];
-    std::vector<unsigned long long> mask_cpu(boxes_num * col_blocks);
+    // uint64_t mask_cpu[boxes_num * col_blocks];
+    // uint64_t *mask_cpu = new uint64_t [boxes_num * col_blocks];
+    std::vector<uint64_t> mask_cpu(boxes_num * col_blocks);
 
-//    printf("boxes_num=%d, col_blocks=%d\n", boxes_num, col_blocks);
-    CHECK_ERROR(cudaMemcpy(&mask_cpu[0], mask_data, boxes_num * col_blocks * sizeof(unsigned long long),
+    // printf("boxes_num=%d, col_blocks=%d\n", boxes_num, col_blocks);
+    CHECK_ERROR(cudaMemcpy(&mask_cpu[0], mask_data, boxes_num * col_blocks * sizeof(uint64_t),
                            cudaMemcpyDeviceToHost));
 
     cudaFree(mask_data);
 
-    unsigned long long remv_cpu[col_blocks];
-    memset(remv_cpu, 0, col_blocks * sizeof(unsigned long long));
+    //uint64_t remv_cpu[col_blocks];
+    uint64_t *remv_cpu = new uint64_t[col_blocks];
+    memset(remv_cpu, 0, col_blocks * sizeof(uint64_t));
 
     int num_to_keep = 0;
 
@@ -174,7 +176,7 @@ int nms_normal_gpu(at::Tensor boxes, at::Tensor keep, float nms_overlap_thresh){
 
         if (!(remv_cpu[nblock] & (1ULL << inblock))){
             keep_data[num_to_keep++] = i;
-            unsigned long long *p = &mask_cpu[0] + i * col_blocks;
+            uint64_t *p = &mask_cpu[0] + i * col_blocks;
             for (int j = nblock; j < col_blocks; j++){
                 remv_cpu[j] |= p[j];
             }

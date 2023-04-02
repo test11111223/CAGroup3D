@@ -8,6 +8,7 @@ import tqdm
 from pcdet.models import load_data_to_gpu
 from pcdet.utils import common_utils
 
+from MinkowskiEngineBackend._C import is_cuda_available
 
 def statistics_info(cfg, ret_dict, metric, disp_dict):
     for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
@@ -39,12 +40,12 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
 
     logger.info('*************** EPOCH %s EVALUATION *****************' % epoch_id)
     if dist_test:
-        num_gpus = torch.cuda.device_count()
-        local_rank = cfg.LOCAL_RANK % num_gpus
+        dtdids = [cfg.LOCAL_RANK % torch.cuda.device_count()]
         model = torch.nn.parallel.DistributedDataParallel(
                 model,
-                device_ids=[local_rank],
-                broadcast_buffers=False
+                device_ids=None if len(dtdids) < 2 else dtdids, 
+                find_unused_parameters=True,
+                #broadcast_buffers=False
         )
     model.eval()
 
@@ -52,7 +53,8 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
         progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
     start_time = time.time()
     for i, batch_dict in enumerate(dataloader):
-        load_data_to_gpu(batch_dict)
+        if is_cuda_available():
+            load_data_to_gpu(batch_dict)
         # NOTE: also feed cur_epoch_id
         batch_dict['cur_epoch'] = epoch_id
         with torch.no_grad():

@@ -17,6 +17,10 @@ from pcdet.datasets import build_dataloader
 from pcdet.models import build_network
 from pcdet.utils import common_utils
 
+from MinkowskiEngineBackend._C import is_cuda_available
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
@@ -28,7 +32,7 @@ def parse_config():
     parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
-    parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
+    #parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
     parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
                         help='set extra config keys if needed')
 
@@ -44,6 +48,7 @@ def parse_config():
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.TAG = Path(args.cfg_file).stem
     cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[1:-1])  # remove 'cfgs' and 'xxxx.yaml'
+    cfg.LOCAL_RANK = int(os.environ["LOCAL_RANK"]) if "LOCAL_RANK" in os.environ else 0
 
     # np.random.seed(1024) # NOTE: set seed 
     common_utils.set_random_seed(0)
@@ -116,7 +121,10 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
         first_eval = False
 
         model.load_params_from_file(filename=cur_ckpt, logger=logger, to_cpu=dist_test)
-        model.cuda()
+        if is_cuda_available():
+            model.cuda()
+        else:
+            model.cpu()
 
         # start evaluation
         cur_result_dir = eval_output_dir / ('epoch_%s' % cur_epoch_id) / cfg.DATA_CONFIG.DATA_SPLIT['test']
@@ -142,7 +150,7 @@ def main():
         total_gpus = 1
     else:
         total_gpus, cfg.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
-            args.tcp_port, args.local_rank, backend='nccl'
+            args.tcp_port, cfg.LOCAL_RANK, backend='gloo'
         )
         dist_test = True
 
@@ -184,11 +192,14 @@ def main():
 
     ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / 'ckpt'
 
+    # GPU count or CPU count. However CPU count is capped at 24 (OMP_NUM_THREADS).
+    args_workers = args.workers if is_cuda_available() else max(os.cpu_count(), 24)
+
     test_set, test_loader, sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,
         class_names=cfg.CLASS_NAMES,
         batch_size=args.batch_size,
-        dist=dist_test, workers=args.workers, logger=logger, training=False
+        dist=dist_test, workers=args_workers, logger=logger, training=False
     )
 
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)

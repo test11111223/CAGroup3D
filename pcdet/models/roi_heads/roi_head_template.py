@@ -195,7 +195,9 @@ class RoIHeadTemplate(nn.Module):
         else:
             raise NotImplementedError
 
-        return rcnn_loss_reg, tb_dict
+        # Must be in CPU afterward
+        rcnn_loss_reg1 = rcnn_loss_reg.clone().detach().cpu()
+        return rcnn_loss_reg1, tb_dict
 
     def get_box_cls_layer_loss(self, forward_ret_dict):
         loss_cfgs = self.model_cfg.LOSS_CONFIG
@@ -215,7 +217,9 @@ class RoIHeadTemplate(nn.Module):
 
         rcnn_loss_cls = rcnn_loss_cls * loss_cfgs.LOSS_WEIGHTS['rcnn_cls_weight']
         tb_dict = {'rcnn_loss_cls': rcnn_loss_cls.item()}
-        return rcnn_loss_cls, tb_dict
+        # Must be in CPU afterward
+        rcnn_loss_cls1 = rcnn_loss_cls.clone().detach().cpu()
+        return rcnn_loss_cls1, tb_dict
 
     def get_loss(self, tb_dict=None):
         tb_dict = {} if tb_dict is None else tb_dict
