@@ -40,6 +40,8 @@ class CAGroup3D(Detector3DTemplate):
         for cur_module in self.module_list:
             if not is_cuda_available():
                 cur_module.cpu()
+            else:
+                cur_module.cuda()
             results = cur_module(batch_dict)
             batch_dict.update(results)
 

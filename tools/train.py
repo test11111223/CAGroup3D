@@ -86,6 +86,10 @@ def main():
 
     args.epochs = cfg.OPTIMIZATION.NUM_EPOCHS if args.epochs is None else args.epochs
 
+    to_cpu_flag = False
+    if not is_cuda_available():
+        to_cpu_flag = True
+
     assert args.fix_random_seed, "we must fix random seed."
     if args.fix_random_seed:
         common_utils.set_random_seed(0)
@@ -148,17 +152,17 @@ def main():
     start_epoch = it = 0
     last_epoch = -1
     if args.pretrained_model is not None:
-        model.load_params_from_file(filename=args.pretrained_model, to_cpu=dist_train, logger=logger)
+        model.load_params_from_file(filename=args.pretrained_model, to_cpu=to_cpu_flag, logger=logger)
 
     if args.ckpt is not None:
-        it, start_epoch = model.load_params_with_optimizer(args.ckpt, to_cpu=dist_train, optimizer=optimizer, logger=logger)
+        it, start_epoch = model.load_params_with_optimizer(args.ckpt, to_cpu=to_cpu_flag, optimizer=optimizer, logger=logger)
         last_epoch = start_epoch + 1
     else:
         ckpt_list = glob.glob(str(ckpt_dir / '*checkpoint_epoch_*.pth'))
         if len(ckpt_list) > 0:
             ckpt_list.sort(key=os.path.getmtime)
             it, start_epoch = model.load_params_with_optimizer(
-                ckpt_list[-1], to_cpu=dist_train, optimizer=optimizer, logger=logger
+                ckpt_list[-1], to_cpu=to_cpu_flag, optimizer=optimizer, logger=logger
             )
             last_epoch = start_epoch + 1
 
@@ -167,7 +171,7 @@ def main():
         dtdids = [cfg.LOCAL_RANK % torch.cuda.device_count()]
         #model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids)
         # Increase BATCH_SIZE may work. (sparse tensors?)
-        model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids, find_unused_parameters=True)
+        #model = nn.parallel.DistributedDataParallel(model, device_ids=None if len(dtdids) < 2 else dtdids, find_unused_parameters=True)
     logger.info(model)
 
     lr_scheduler, lr_warmup_scheduler = build_scheduler(
@@ -222,7 +226,7 @@ def main():
     repeat_eval_ckpt(
         model.module if dist_train else model,
         test_loader, args, eval_output_dir, logger, ckpt_dir,
-        dist_test=dist_train
+        dist_test=to_cpu_flag
     )
     logger.info('**********************End evaluation %s/%s(%s)**********************' %
                 (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))

@@ -47,6 +47,10 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
                 find_unused_parameters=True,
                 #broadcast_buffers=False
         )
+    if is_cuda_available():
+        model.cuda()
+    else:
+        model.cpu()
     model.eval()
 
     if cfg.LOCAL_RANK == 0:

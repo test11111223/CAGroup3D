@@ -204,7 +204,7 @@ class CAGroup3DHead(nn.Module):
             nn.init.normal_(self.cls_individual_out[cls_id][0].kernel, std=.01)
 
     def forward(self, input_dict, return_middle_feature=True):
-        me_device = None if is_cuda_available() else "cpu"
+        me_device = 'cuda:0' if is_cuda_available() else "cpu"
         batch_size = input_dict['batch_size']
         outs = []
         out = input_dict['sp_tensor'] # semantic input from backbone3d
@@ -346,7 +346,7 @@ class CAGroup3DHead(nn.Module):
              img_metas,
              pts_semantic_mask,
              pts_instance_mask):
-
+        me_device = 'cuda:0' if is_cuda_available() else 'cpu'
         if pts_semantic_mask is None:
             pts_semantic_mask = [None for _ in range(len(centernesses[0]))]
             pts_instance_mask = pts_semantic_mask
@@ -390,12 +390,12 @@ class CAGroup3DHead(nn.Module):
             loss_sem.append(img_loss_sem)
             loss_vote.append(img_loss_vote)
         
-        
-        loss_centerness=torch.mean(torch.stack(loss_centerness))
-        loss_bbox=torch.mean(torch.stack(loss_bbox))
-        loss_cls=torch.mean(torch.stack(loss_cls))
-        loss_sem=torch.mean(torch.stack(loss_sem))
-        loss_vote=torch.mean(torch.stack(loss_vote))
+        print(loss_centerness)
+        loss_centerness=torch.mean(torch.stack([t.to(me_device) for t in loss_centerness]))
+        loss_bbox=torch.mean(torch.stack([t.to(me_device) for t in loss_bbox]))
+        loss_cls=torch.mean(torch.stack([t.to(me_device) for t in loss_cls]))
+        loss_sem=torch.mean(torch.stack([t.to(me_device) for t in loss_sem]))
+        loss_vote=torch.mean(torch.stack([t.to(me_device) for t in loss_vote]))
 
         loss = loss_centerness + loss_bbox + loss_cls + loss_sem + loss_vote
         tb_dict = dict(
@@ -722,7 +722,7 @@ class CAGroup3DHead(nn.Module):
         centerness = self.centerness_conv(x).features
         scores = self.cls_conv(x)
         cls_score = scores.features
-        me_device = None if is_cuda_available() else "cpu"
+        me_device = 'cuda:0' if is_cuda_available() else "cpu"
         prune_scores = ME.SparseTensor(
             scores.features.max(dim=1, keepdim=True).values,
             coordinate_map_key=scores.coordinate_map_key,

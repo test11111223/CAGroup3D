@@ -170,7 +170,8 @@ def checkpoint_state(model=None, optimizer=None, epoch=None, it=None):
     optim_state = optimizer.state_dict() if optimizer is not None else None
     if model is not None:
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
-            model_state = model_state_to_cpu(model.module.state_dict())
+            #model_state = model_state_to_cpu(model.module.state_dict())
+            model_state = model.state_dict()
         else:
             model_state = model.state_dict()
     else:
