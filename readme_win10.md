@@ -56,6 +56,9 @@ conda install -c conda-forge tensorboard
 # For evalulation
 conda install -c conda-forge terminaltables
 
+# For "plan a" of data visualisation
+conda install -c conda-forge matplotlib
+
 # For "plan b" of data visualisation
 conda install -c conda-forge mayavi
 ```
@@ -206,4 +209,4 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
 - Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
-- **TODO** Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`. *Oh no* `demo.py` is another rabbit hole.
+- **TODO** Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes.
