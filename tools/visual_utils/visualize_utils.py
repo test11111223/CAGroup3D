@@ -2,12 +2,13 @@ import mayavi.mlab as mlab
 import numpy as np
 import torch
 
-box_colormap = [
-    [1, 1, 1],
-    [0, 1, 0],
-    [0, 1, 1],
-    [1, 1, 0],
-]
+import colorsys
+
+def get_color_map(size):
+    a = []
+    for i in range(size):
+        a.append(colorsys.hls_to_rgb(i / size, 0.5, 1.0))
+    return a
 
 
 def check_numpy_to_torch(x):
@@ -139,7 +140,7 @@ def draw_multi_grid_range(fig, grid_size=20, bv_range=(-60, -60, 60, 60)):
     return fig
 
 
-def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labels=None):
+def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labels=None, draw_scores=None, title=None):
     if not isinstance(points, np.ndarray):
         points = points.cpu().numpy()
     if ref_boxes is not None and not isinstance(ref_boxes, np.ndarray):
@@ -150,6 +151,8 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labe
         ref_scores = ref_scores.cpu().numpy()
     if ref_labels is not None and not isinstance(ref_labels, np.ndarray):
         ref_labels = ref_labels.cpu().numpy()
+
+    box_colormap = get_color_map(max(ref_labels) + 1) if ref_labels is not None else None
 
     fig = visualize_pts(points)
     fig = draw_multi_grid_range(fig, bv_range=(0, -40, 80, 40))
@@ -164,7 +167,7 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labe
         else:
             for k in range(ref_labels.min(), ref_labels.max() + 1):
                 cur_color = tuple(box_colormap[k % len(box_colormap)])
-                mask = (ref_labels == k)
+                mask = (ref_labels == k) & (ref_scores >= draw_scores)
                 fig = draw_corners3d(ref_corners3d[mask], fig=fig, color=cur_color, cls=ref_scores[mask], max_num=100)
     mlab.view(azimuth=-179, elevation=54.0, distance=104.0, roll=90.0)
     return fig

@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os
 import re
+import random
 from pathlib import Path
 
 try:
@@ -35,7 +36,8 @@ def parse_config():
     parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
                         help='set extra config keys if needed')
 
-    parser.add_argument('--demo_tag', type=str, default='default', help='eval tag for this experiment')
+    parser.add_argument('--draw_scores', type=float, default=0.5, help='draw detection boxes with minimal scores')
+    parser.add_argument('--draw_idx', type=int, default=10, help='draw how many scenes (randomly selected)')
     
     args = parser.parse_args()
 
@@ -67,27 +69,39 @@ def demo_single_ckpt(demo_dataset, model, epoch_id, args, logger):
 
     model.eval()
     with torch.no_grad():
-        for idx, data_dict in enumerate(demo_dataset):
-            logger.info(f'Visualized sample index: \t{idx + 1}')
-            data_dict = demo_dataset.collate_batch([data_dict])
+        #for idx, data_dict in enumerate(demo_dataset):
+            #skip
+            #if idx >= args.draw_idx:
+            #    break
 
-            #dict_keys(['frame_id', 'gt_boxes', 'points', 'instance_mask', 'semantic_mask', 'axis_align_matrix', 'use_lead_xyz', 'batch_size'])
-            #raise AssertionError(data_dict.keys())
-          
-            # NOTE: also feed cur_epoch_id
-            data_dict['cur_epoch'] = epoch_id
-
-            pred_dicts, _ = model.forward(data_dict)
-
+        for _ in range(args.draw_idx):
             try:
+                idx = int(random.random() * demo_dataset.__len__())
+                data_dict = demo_dataset.__getitem__(idx)
+
+                logger.info(f'Visualized sample index: \t{idx + 1}')
+                data_dict = demo_dataset.collate_batch([data_dict])
+
+                #dict_keys(['frame_id', 'gt_boxes', 'points', 'instance_mask', 'semantic_mask', 'axis_align_matrix', 'use_lead_xyz', 'batch_size'])
+                #raise AssertionError(data_dict.keys())
+          
+                # NOTE: also feed cur_epoch_id
+                data_dict['cur_epoch'] = epoch_id
+
+                pred_dicts, _ = model.forward(data_dict)        
+
+                logger.info("Max prediction score: {:.4f}".format(max(pred_dicts[0]['pred_scores'])))
+
                 V.draw_scenes(
                     points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
-                    ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
+                    ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels'],
+                    draw_scores=args.draw_scores, title="Open3D - {} - Test dataset Scene #{}".format(args.extra_tag, idx)
                 )
 
                 if not OPEN3D_FLAG:
                     mlab.show(stop=True)
             except:
+                print("Runtime Error")
                 continue
 
     logger.info('Demo done.')
@@ -106,8 +120,8 @@ def main():
     epoch_id = num_list[-1] if num_list.__len__() > 0 else 'no_number'
     demo_output_dir = demo_output_dir / ('epoch_%s' % epoch_id) / cfg.DATA_CONFIG.DATA_SPLIT['test']
 
-    if args.demo_tag is not None:
-        demo_output_dir = demo_output_dir / args.demo_tag
+    if args.extra_tag is not None:
+        demo_output_dir = demo_output_dir / args.extra_tag
 
     demo_output_dir.mkdir(parents=True, exist_ok=True)
     log_file = demo_output_dir / ('log_eval_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))

@@ -174,14 +174,18 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 
 ## Visualize data ##
 
-- No explaination from original repo, expected aligned with the provided `demo.py`
+- No explaination from original repo, ~~expected aligned with the provided `demo.py`~~ rewritten from `test.py`.
+- Draw *10 random scenes* from dataset (`scannet` = 312, `sunrgbd` = 5050).
+- Detection box is drawn if it prediction score exceed `draw_scores` or it is the best prediction.
+- Color scale: **HSL** across class labels. Sequence aligned with `CLASS_NAMES`.
+- Expected using **Open3D** (plan a) for visualisation. Mayavi has issue on view perspectives, although it has 3d labels as prediction scores.
 
 ```sh
 cd tools/
 #scannet
-python demo.py --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --data_path ../data/scannet_data/scannet/ScanNetV2
+python demo.py --cfg_file ../tools/cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --draw_scores 0.5 --draw_idx 10
 #sunrgbd
-python demo.py --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --data_path ../data/sunrgbd_data/sunrgbd
+python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --draw_scores 0.4 --draw_idx 10
 ```
 
 ## Rants ##
@@ -209,4 +213,4 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
 - Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
-- **TODO** Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes.
+- Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes. ~~There is so many limitation from Open3D.~~

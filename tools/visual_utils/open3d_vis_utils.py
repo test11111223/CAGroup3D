@@ -7,14 +7,13 @@ import open3d
 import torch
 import matplotlib
 import numpy as np
+import colorsys
 
-box_colormap = [
-    [1, 1, 1],
-    [0, 1, 0],
-    [0, 1, 1],
-    [1, 1, 0],
-]
-
+def get_color_map(size):
+    a = []
+    for i in range(size):
+        a.append(colorsys.hls_to_rgb(i / size, 0.5, 1.0))
+    return a
 
 def get_coor_colors(obj_labels):
     """
@@ -35,7 +34,7 @@ def get_coor_colors(obj_labels):
     return label_rgba
 
 
-def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_labels=None, ref_scores=None, point_colors=None, draw_origin=True):
+def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_labels=None, ref_scores=None, point_colors=None, draw_origin=True, draw_scores=None, title="Open3D"):
     if isinstance(points, torch.Tensor):
         points = points.cpu().numpy()
     if isinstance(gt_boxes, torch.Tensor):
@@ -67,7 +66,7 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_labels=None, ref_scor
         vis = draw_box(vis, gt_boxes, (0, 0, 1))
 
     if ref_boxes is not None:
-        vis = draw_box(vis, ref_boxes, (0, 1, 0), ref_labels, ref_scores)
+        vis = draw_box(vis, ref_boxes, (0, 1, 0), ref_labels, ref_scores, draw_scores)
 
     vis.run()
     vis.destroy_window()
@@ -100,8 +99,13 @@ def translate_boxes_to_open3d_instance(gt_boxes):
     return line_set, box3d
 
 
-def draw_box(vis, gt_boxes, color=(0, 1, 0), ref_labels=None, score=None):
+def draw_box(vis, gt_boxes, color=(0, 1, 0), ref_labels=None, score=None, draw_scores=None):
+    box_colormap = get_color_map(max(ref_labels) + 1) if ref_labels is not None else None
+
     for i in range(gt_boxes.shape[0]):
+        if (score is not None) and (draw_scores is not None):
+            if (score[i] != max(score)) and (score[i] < draw_scores):
+                continue
         line_set, box3d = translate_boxes_to_open3d_instance(gt_boxes[i])
         if ref_labels is None:
             line_set.paint_uniform_color(color)
