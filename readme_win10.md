@@ -1,5 +1,9 @@
 # Running CAGroup3D in Winodws 10 #
 
+![sunrgbd_3.JPG](./docs/cagroup3d/gallery/sunrgbd_3.JPG) *Detection from a "finetuned" model solely in Windows 10 PC.*
+
+## Environments ##
+
 - (Passed) Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + ~~72GB~~ 128GB DDR4 + 480GB SATA SSD
 - (Passed) Another testing environment: C602 + 2x E5-2650V4 + Win10 22H1 + GTX 1080 Ti + 256GB DDR4 + 500GB SATA SSD
 - **WSL2 does not work.** CUDA crash hopelessly.
@@ -188,6 +192,12 @@ python demo.py --cfg_file ../tools/cfgs/scannet_models/CAGroup3D.yaml --ckpt ../
 python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --draw_scores 0.4 --draw_idx 10
 ```
 
+## Gallery ##
+
+- See the [gallery](./docs/cagroup3d/gallery/readme.md) for details.
+
+![sunrgbd_6.JPG](./docs/cagroup3d/gallery/sunrgbd_6.JPG) *Example from SunRGBD*
+
 ## Rants ##
 
 - [error C2131 on EPS](https://github.com/open-mmlab/OpenPCDet/pull/1040)
@@ -214,3 +224,5 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
 - Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes. ~~There is so many limitation from Open3D.~~
+- **TODO** Adding GPU support from teammate's great work: [His fork form this repo.](https://github.com/test11111223/CAGroup3D) [His tryhard mod of Minkowski Engine according to this repo.](https://github.com/test11111223/MinkowskiEngine). Note that **it is still in active development.**
+- **TODO** Maybe export the detections to TensorBoard also. [Open3D for TensorBoard.](http://www.open3d.org/docs/latest/tutorial/visualization/tensorboard_plugin.html)
