@@ -192,6 +192,14 @@ python demo.py --cfg_file ../tools/cfgs/scannet_models/CAGroup3D.yaml --ckpt ../
 python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --draw_scores 0.4 --draw_idx 10
 ```
 
+## Control keys on Open3D ##
+
+- `Left Click`: Rotate from focal point
+- `Crtl` + Left Click: Pan
+- `Shift` : Rotate per axis
+- `PrintScreen`: Print screen (Open3D Windows) in PNG + Save meta file (JSON)
+- `Q`: Quit
+
 ## Gallery ##
 
 - See the [gallery](./docs/cagroup3d/gallery/readme.md) for details.
