@@ -169,7 +169,7 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 - Including our "epoch1" result, pretrained model from original author to validate our modified code, and potentially our "finetuned model" (`e8+1`, `e12+1`).
 
 |Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|`scannet-e9`|`sunrgbd-e13`|
-|---|---|---|---|---|
+|---|---|---|---|---|---|---|
 |Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
 |`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|71.2267|DNF|
 |`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|56.7902|DNF|
