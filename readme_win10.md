@@ -153,9 +153,9 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher p
 ```sh
 cd tools/
 #scannet
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval --save_to_file > ../logs/eval_scannet.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval > ../logs/eval_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval --save_to_file > ../logs/eval_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
 ```
 
 ## Hours for evaluation ##
@@ -168,13 +168,13 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 
 - Including our "epoch1" result, pretrained model from original author to validate our modified code, and potentially our "finetuned model" (`e8+1`, `e12+1`).
 
-|Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|
+|Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|`scannet-e9`|`sunrgbd-e13`|
 |---|---|---|---|---|
-|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|
-|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|
-|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|
-|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|
-|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|
+|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
+|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|71.2267|DNF|
+|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|56.7902|DNF|
+|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|89.8917|DNF|
+|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|73.8451|DNF|
 
 ## Visualize data ##
 
@@ -202,7 +202,7 @@ python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../
 
 ## Gallery ##
 
-- See the [gallery](./docs/cagroup3d/gallery/readme.md) for details.
+- See the [gallery](./docs/cagroup3d/gallery) for details.
 
 ![sunrgbd_6.JPG](./docs/cagroup3d/gallery/sunrgbd_6.JPG) *Example from SunRGBD*
 
