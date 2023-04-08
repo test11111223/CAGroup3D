@@ -64,7 +64,10 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test)
     # NOTE(lihe): debug!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # model.refresh_weights() # remember to remove this line!
-    model.cuda()
+    if is_cuda_available():
+        model.cuda()
+    else:
+        model.cpu()
 
     # start evaluation
     eval_utils.eval_one_epoch(

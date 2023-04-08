@@ -1,5 +1,9 @@
 # Running CAGroup3D in Winodws 10 #
 
+![sunrgbd_3.JPG](./docs/cagroup3d/gallery/sunrgbd_3.JPG) *Detection from a "finetuned" model solely in Windows 10 PC.*
+
+## Environments ##
+
 - (Passed) Testing environment: X299 + i7-7820X + Win10 22H2 + RTX 2080 Ti + ~~72GB~~ 128GB DDR4 + 480GB SATA SSD
 - (Passed) Another testing environment: C602 + 2x E5-2650V4 + Win10 22H1 + GTX 1080 Ti + 256GB DDR4 + 500GB SATA SSD
 - **WSL2 does not work.** CUDA crash hopelessly.
@@ -55,6 +59,12 @@ conda install -c conda-forge tensorboard
 
 # For evalulation
 conda install -c conda-forge terminaltables
+
+# For "plan a" of data visualisation
+conda install -c conda-forge matplotlib
+
+# For "plan b" of data visualisation
+conda install -c conda-forge mayavi
 ```
 
 - MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
@@ -116,20 +126,29 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher p
 
 ```sh
 #scannet
-tensorboard --logdir output/scannet_models/CAGroup3D/cagroup3d-win10-scannet/tensorboard
+tensorboard --logdir output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/tensorboard
 #sunrgbd
-tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd/tensorboard
+tensorboard --logdir output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/tensorboard
 ``` 
+
+- Train from pretrained model (Remember to move the directory and calculate the epoch):
+```sh
+cd tools/
+#scannet
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --pretrained_model ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --epochs 9 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
+#sunrgbd
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --pretrained_model ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --epochs 13 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
+```
 
 ## Hours for training ##
 
 - `ScanNetV2`: Takes around **96 hours** for a single epoch. (`BATCH_SIZE=16`)
 - `SUNRGBD V1`: Takes around **36 hours** for a single epoch. (`BATCH_SIZE=16`)
-- `BATCH_SIZE` has *no effect*. Keep waiting.
+- `BATCH_SIZE` Has *no effect*. Keep waiting.
 
 ## Evaluation ##
 
-- In progress. ~~Keep debugging.~~
+- Although the CPU usage is not very intense, do not run both evals in the same time. You may crash the OS (kernel), and get the scary [GPU error code 43](https://www.nvidia.com/en-us/geforce/forums/game-ready-drivers/13/273008/code-43-please-help/). Disable then re-enable the GPU driver will bring it back.
 
 ```sh
 cd tools/
@@ -139,23 +158,53 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher py
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
 ```
 
+## Hours for evaluation ##
+
+- `ScanNetV2`: Takes around **2 hours**.
+- `SUNRGBD V1`: Takes around **5 hours**.
+- `args_workers`: No obvious effect. Keep waiting.
 
 ## Performance / Pretrained model and logs ##
 
 - Including our "epoch1" result, pretrained model from original author to validate our modified code, and potentially our "finetuned model" (`e8+1`, `e12+1`).
 
-|Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|
+|Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|`scannet-e9`|`sunrgbd-e13`|
 |---|---|---|---|---|
-|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|
-|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|
-|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|
-|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|
-|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|
+|Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
+|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|71.2267|DNF|
+|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|56.7902|DNF|
+|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|89.8917|DNF|
+|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|73.8451|DNF|
 
-## Hours for evaluation ##
+## Visualize data ##
 
-- `ScanNetV2`: Takes around **2 hours**.
-- `SUNRGBD V1`: Takes around **5 hours**.
+- No explaination from original repo, ~~expected aligned with the provided `demo.py`~~ rewritten from `test.py`.
+- Draw *10 random scenes* from dataset (`scannet` = 312, `sunrgbd` = 5050).
+- Detection box is drawn if it prediction score exceed `draw_scores` or it is the best prediction.
+- Color scale: **HSL** across class labels. Sequence aligned with `CLASS_NAMES`.
+- Expected using **Open3D** (plan a) for visualisation. Mayavi has issue on view perspectives, although it has 3d labels as prediction scores.
+
+```sh
+cd tools/
+#scannet
+python demo.py --cfg_file ../tools/cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --draw_scores 0.5 --draw_idx 10
+#sunrgbd
+python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --draw_scores 0.4 --draw_idx 10
+```
+
+## Control keys on Open3D ##
+
+- `Left Click`: Rotate from focal point
+- `Crtl` + Left Click: Pan
+- `Shift` : Rotate per axis
+- `PrintScreen`: Print screen (Open3D Windows) in PNG + Save meta file (JSON)
+- `Q`: Quit
+
+## Gallery ##
+
+- See the [gallery](./docs/cagroup3d/gallery) for details.
+
+![sunrgbd_6.JPG](./docs/cagroup3d/gallery/sunrgbd_6.JPG) *Example from SunRGBD*
 
 ## Rants ##
 
@@ -180,6 +229,8 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - [long should be int_64t](https://www.jianshu.com/p/755952cfce64). [long in Flutter](https://api.flutter.dev/flutter/dart-ffi/Long-class.html). [stackoverflow](https://stackoverflow.com/questions/1918436/difference-between-long-and-int-in-c)
 - sunrgbd's code coverage is larger then scannet, meanwhile the dataset is 2x smaller. Test with this dataset first. ~~It takes 30-60 mins to crash but scannet takes 2Hrs.~~
 - `find_unused_parameters=True` is mandatory now. Not sure if we can train with multiple GPUs later on.
-- **TODO** Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~
+- Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
-- **TODO** Visualization / play with estimation. There is a `result.pkl` without any explaination.
+- Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes. ~~There is so many limitation from Open3D.~~
+- **TODO** Adding GPU support from teammate's great work: [His fork form this repo.](https://github.com/test11111223/CAGroup3D) [His tryhard mod of Minkowski Engine according to this repo.](https://github.com/test11111223/MinkowskiEngine). Note that **it is still in active development.**
+- **TODO** Maybe export the detections to TensorBoard also. [Open3D for TensorBoard.](http://www.open3d.org/docs/latest/tutorial/visualization/tensorboard_plugin.html)
