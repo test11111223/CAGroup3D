@@ -16,6 +16,7 @@ from pcdet.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_f
 from pcdet.datasets import build_dataloader
 from pcdet.models import build_network
 from pcdet.utils import common_utils
+import gc
 
 from MinkowskiEngineBackend._C import is_cuda_available
 
@@ -74,6 +75,10 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
         cfg, model, test_loader, epoch_id, logger, dist_test=dist_test,
         result_dir=eval_output_dir, save_to_file=args.save_to_file
     )
+    del model
+    if is_cuda_available():
+        torch.cuda.empty_cache()
+    gc.collect()
 
 
 def get_no_evaluated_ckpt(ckpt_dir, ckpt_record_file, args):
@@ -144,6 +149,10 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
         with open(ckpt_record_file, 'a') as f:
             print('%s' % cur_epoch_id, file=f)
         logger.info('Epoch %s has been evaluated' % cur_epoch_id)
+        del model
+        if is_cuda_available():
+            torch.cuda.empty_cache()
+        gc.collect()
 
 
 def main():
@@ -206,11 +215,11 @@ def main():
     )
 
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
-    with torch.no_grad():
-        if args.eval_all:
-            repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=dist_test)
-        else:
-            eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
+    #with torch.no_grad():
+    if args.eval_all:
+        repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=not dist_test)
+    else:
+        eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=not dist_test)
 
 
 if __name__ == '__main__':

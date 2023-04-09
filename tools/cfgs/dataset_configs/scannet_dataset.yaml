@@ -1,5 +1,5 @@
 DATASET: 'ScannetDataset'
-DATA_PATH: '../data/scannet_data/ScanNetV2'
+DATA_PATH: '../data/scannet'
 PROCESSED_DATA_TAG: 'scannet_processed_data_v0_5_0'
 
 POINT_CLOUD_RANGE: [-40, -40, -10, 40, 40, 10]
