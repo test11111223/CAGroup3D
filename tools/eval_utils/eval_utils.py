@@ -40,14 +40,15 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
     det_annos = []
 
     logger.info('*************** EPOCH %s EVALUATION *****************' % epoch_id)
-    if dist_test:
+    # Disabled as reported crash. However don't modify the commond.
+    if False and dist_test:
         dtdids = [cfg.LOCAL_RANK % torch.cuda.device_count()]
-        #model = torch.nn.parallel.DistributedDataParallel(
-        #        model,
-        #        device_ids=None if len(dtdids) < 2 else dtdids, 
-        #        find_unused_parameters=True,
-                #broadcast_buffers=False
-        #)
+        model = torch.nn.parallel.DistributedDataParallel(
+                model,
+                device_ids=None if len(dtdids) < 2 else dtdids, 
+                find_unused_parameters=True,
+                broadcast_buffers=False
+        )
     if is_cuda_available():
         model.cuda()
     else:
@@ -62,22 +63,38 @@ def eval_one_epoch(cfg, model, dataloader, epoch_id, logger, dist_test=False, sa
             load_data_to_gpu(batch_dict)
         # NOTE: also feed cur_epoch_id
         batch_dict['cur_epoch'] = epoch_id
-        #with torch.no_grad():
-        pred_dicts, ret_dict = model(batch_dict)
-        disp_dict = {}
-
-        statistics_info(cfg, ret_dict, metric, disp_dict)
-        annos = dataset.generate_prediction_dicts(
-            batch_dict, pred_dicts, class_names,
-            output_path=final_output_dir if save_to_file else None
-        )
-        det_annos += annos
-        if cfg.LOCAL_RANK == 0:
-            progress_bar.set_postfix(disp_dict)
-            progress_bar.update()
+        # Too lazy to find the equivalent to nograd()
         if is_cuda_available():
-            torch.cuda.empty_cache()
-            gc.collect()
+            pred_dicts, ret_dict = model(batch_dict)
+            disp_dict = {}
+
+            statistics_info(cfg, ret_dict, metric, disp_dict)
+            annos = dataset.generate_prediction_dicts(
+                batch_dict, pred_dicts, class_names,
+                output_path=final_output_dir if save_to_file else None
+            )
+            det_annos += annos
+            if cfg.LOCAL_RANK == 0:
+                progress_bar.set_postfix(disp_dict)
+                progress_bar.update()
+        else:
+            with torch.no_grad():
+                pred_dicts, ret_dict = model(batch_dict)
+                disp_dict = {}
+
+                statistics_info(cfg, ret_dict, metric, disp_dict)
+                annos = dataset.generate_prediction_dicts(
+                    batch_dict, pred_dicts, class_names,
+                    output_path=final_output_dir if save_to_file else None
+                )
+                det_annos += annos
+                if cfg.LOCAL_RANK == 0:
+                    progress_bar.set_postfix(disp_dict)
+                    progress_bar.update()
+
+        if is_cuda_available():
+            torch.cuda.empty_cache()        
+        gc.collect()
 
     if cfg.LOCAL_RANK == 0:
         progress_bar.close()

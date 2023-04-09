@@ -86,9 +86,7 @@ def main():
 
     args.epochs = cfg.OPTIMIZATION.NUM_EPOCHS if args.epochs is None else args.epochs
 
-    to_cpu_flag = False
-    if not is_cuda_available():
-        to_cpu_flag = True
+    to_cpu_flag = False if is_cuda_available() else True
 
     assert args.fix_random_seed, "we must fix random seed."
     if args.fix_random_seed:
@@ -211,6 +209,8 @@ def main():
 
     logger.info('**********************Start evaluation %s/%s(%s)**********************' %
                 (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
+    logger.info('WINDOWS 10: dist_test has been disabled.')
+    dist_test = False
     test_set, test_loader, sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,
         class_names=cfg.CLASS_NAMES,
@@ -226,7 +226,7 @@ def main():
     repeat_eval_ckpt(
         model.module if dist_train else model,
         test_loader, args, eval_output_dir, logger, ckpt_dir,
-        dist_test=to_cpu_flag
+        dist_test=dist_test
     )
     logger.info('**********************End evaluation %s/%s(%s)**********************' %
                 (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
