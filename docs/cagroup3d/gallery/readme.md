@@ -32,11 +32,11 @@
 |Index|Scannet V2|SunRGBD|
 |---|---|---|
 |0|![ScreenCapture_2023-04-08-23-26-39.png](ScreenCapture_2023-04-08-23-26-39.png) *264 (0.7333)*|![ScreenCapture_2023-04-10-09-00-06.png](ScreenCapture_2023-04-10-09-00-06.png) *4265 (0.3109)*|
-|1|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *237 (0.7407)*|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *3828 (0.4564)*|
+|1|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *237 (0.7407)*|![ScreenCapture_2023-04-10-09-01-18.png](ScreenCapture_2023-04-10-09-01-18.png) *3828 (0.4564)*|
 |2|![ScreenCapture_2023-04-08-23-32-18.png](ScreenCapture_2023-04-08-23-32-18.png) *132 (0.5842)*|![ScreenCapture_2023-04-10-09-16-40.png](ScreenCapture_2023-04-10-09-16-40.png) *2124 (0.4953)*|
-|3|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *081 (0.5720)*|![ScreenCapture_2023-04-08-23-32-18.png](ScreenCapture_2023-04-08-23-32-18.png) *1308 (0.5694)*|
-|4|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *160 (0.6681)*|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *2582 (0.2525)*|
-|5|![ScreenCapture_2023-04-08-23-43-08.png](ScreenCapture_2023-04-08-23-43-08.png) *127 (0.4390)*|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *2045 (0.1051)*|
+|3|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *081 (0.5720)*|![ScreenCapture_2023-04-10-09-04-21.png](ScreenCapture_2023-04-10-09-04-21.png) *1308 (0.5694)*|
+|4|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *160 (0.6681)*|![ScreenCapture_2023-04-10-09-07-13.png](ScreenCapture_2023-04-10-09-07-13.png) *2582 (0.2525)*|
+|5|![ScreenCapture_2023-04-08-23-43-08.png](ScreenCapture_2023-04-08-23-43-08.png) *127 (0.4390)*|![ScreenCapture_2023-04-10-09-08-57.png](ScreenCapture_2023-04-10-09-08-57.png) *2045 (0.1051)*|
 |6|![ScreenCapture_2023-04-08-23-45-15.png](ScreenCapture_2023-04-08-23-45-15.png) *245 (0.5019)*|![ScreenCapture_2023-04-10-09-09-50.png](ScreenCapture_2023-04-10-09-09-50.png) *3959 (0.4579)*|
 |7|![ScreenCapture_2023-04-08-23-47-01.png](ScreenCapture_2023-04-08-23-47-01.png) *095 (0.7480)*|**Runtime Error** *1532*|
 |8|![ScreenCapture_2023-04-08-23-49-49.png](ScreenCapture_2023-04-08-23-49-49.png) *149 (0.6923)*|![ScreenCapture_2023-04-10-09-10-52.png](ScreenCapture_2023-04-10-09-10-52.png) *2407 (0.2405)*|
