@@ -31,13 +31,13 @@
 
 |Index|Scannet V2|SunRGBD|
 |---|---|---|
-|0|![ScreenCapture_2023-04-08-23-26-39.png](ScreenCapture_2023-04-08-23-26-39.png) *264 (0.7333)*|![sunrgbd_0.JPG](sunrgbd_0.JPG) *4265 (0.3109)*|
-|1|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *237 (0.7407)*|![sunrgbd_1.JPG](sunrgbd_1.JPG) *3828 (0.4564)*|
-|2|![ScreenCapture_2023-04-08-23-32-18.png](ScreenCapture_2023-04-08-23-32-18.png) *132 (0.5842)*|![sunrgbd_2.JPG](sunrgbd_2.JPG) *2124 (0.4953)*|
-|3|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *081 (0.5720)*|![sunrgbd_3.JPG](sunrgbd_3.JPG) *1308 (0.5694)*|
-|4|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *160 (0.6681)*|![sunrgbd_4.JPG](sunrgbd_4.JPG) *2582 (0.2525)*|
-|5|![ScreenCapture_2023-04-08-23-43-08.png](ScreenCapture_2023-04-08-23-43-08.png) *127 (0.4390)*|![sunrgbd_5.JPG](sunrgbd_5.JPG) *2045 (0.1051)*|
-|6|![ScreenCapture_2023-04-08-23-45-15.png](ScreenCapture_2023-04-08-23-45-15.png) *245 (0.5019)*|![sunrgbd_6.JPG](sunrgbd_6.JPG) *3959 (0.4579)*|
+|0|![ScreenCapture_2023-04-08-23-26-39.png](ScreenCapture_2023-04-08-23-26-39.png) *264 (0.7333)*|![ScreenCapture_2023-04-10-09-00-06.png](ScreenCapture_2023-04-10-09-00-06.png) *4265 (0.3109)*|
+|1|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *237 (0.7407)*|![ScreenCapture_2023-04-08-23-29-26.png](ScreenCapture_2023-04-08-23-29-26.png) *3828 (0.4564)*|
+|2|![ScreenCapture_2023-04-08-23-32-18.png](ScreenCapture_2023-04-08-23-32-18.png) *132 (0.5842)*|![ScreenCapture_2023-04-10-09-16-40.png](ScreenCapture_2023-04-10-09-16-40.png) *2124 (0.4953)*|
+|3|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *081 (0.5720)*|![ScreenCapture_2023-04-08-23-32-18.png](ScreenCapture_2023-04-08-23-32-18.png) *1308 (0.5694)*|
+|4|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *160 (0.6681)*|![ScreenCapture_2023-04-08-23-37-54.png](ScreenCapture_2023-04-08-23-37-54.png) *2582 (0.2525)*|
+|5|![ScreenCapture_2023-04-08-23-43-08.png](ScreenCapture_2023-04-08-23-43-08.png) *127 (0.4390)*|![ScreenCapture_2023-04-08-23-41-35.png](ScreenCapture_2023-04-08-23-41-35.png) *2045 (0.1051)*|
+|6|![ScreenCapture_2023-04-08-23-45-15.png](ScreenCapture_2023-04-08-23-45-15.png) *245 (0.5019)*|![ScreenCapture_2023-04-10-09-09-50.png](ScreenCapture_2023-04-10-09-09-50.png) *3959 (0.4579)*|
 |7|![ScreenCapture_2023-04-08-23-47-01.png](ScreenCapture_2023-04-08-23-47-01.png) *095 (0.7480)*|**Runtime Error** *1532*|
-|8|![ScreenCapture_2023-04-08-23-49-49.png](ScreenCapture_2023-04-08-23-49-49.png) *149 (0.6923)*|![sunrgbd_8.JPG](sunrgbd_8.JPG) *2407 (0.2405)*|
-|9|![ScreenCapture_2023-04-08-23-51-38.png](ScreenCapture_2023-04-08-23-51-38.png) *183 (0.7048)*|![sunrgbd_9.JPG](sunrgbd_9.JPG) *2947 (0.4634)*|
+|8|![ScreenCapture_2023-04-08-23-49-49.png](ScreenCapture_2023-04-08-23-49-49.png) *149 (0.6923)*|![ScreenCapture_2023-04-10-09-10-52.png](ScreenCapture_2023-04-10-09-10-52.png) *2407 (0.2405)*|
+|9|![ScreenCapture_2023-04-08-23-51-38.png](ScreenCapture_2023-04-08-23-51-38.png) *183 (0.7048)*|![ScreenCapture_2023-04-10-09-11-47.png](ScreenCapture_2023-04-10-09-11-47.png) *2947 (0.4634)*|
