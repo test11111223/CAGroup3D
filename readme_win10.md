@@ -1,6 +1,6 @@
 # Running CAGroup3D in Winodws 10 #
 
-![sunrgbd_3.JPG](./docs/cagroup3d/gallery/sunrgbd_3.JPG) *Detection from a "finetuned" model solely in Windows 10 PC.*
+![ScreenCapture_2023-04-08-23-47-01.png](./docs/cagroup3d/gallery/ScreenCapture_2023-04-08-23-47-01.png) *Detection from a "finetuned" model solely in Windows 10 PC.*
 
 ## Environments ##
 
@@ -205,7 +205,7 @@ python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../
 
 - See the [gallery](./docs/cagroup3d/gallery) for details.
 
-![sunrgbd_6.JPG](./docs/cagroup3d/gallery/sunrgbd_6.JPG) *Example from SunRGBD*
+![ScreenCapture_2023-04-10-09-09-50.png](./docs/cagroup3d/gallery/ScreenCapture_2023-04-10-09-09-50.png) *Example from SunRGBD*
 
 ## Rants ##
 
