@@ -101,9 +101,9 @@ class SunrgbdDataset(DatasetTemplate):
             return ret_dict
 
         def generate_single_sample_dict(batch_index, box_dict):
-            pred_scores = box_dict['pred_scores'].cpu().numpy()
-            pred_boxes = box_dict['pred_boxes'].cpu().numpy()
-            pred_labels = box_dict['pred_labels'].cpu().numpy()
+            pred_scores = box_dict['pred_scores'].detach().cpu().numpy()
+            pred_boxes = box_dict['pred_boxes'].detach().cpu().numpy()
+            pred_labels = box_dict['pred_labels'].detach().cpu().numpy()
             pred_dict = get_template_prediction(pred_scores.shape[0])
             if pred_scores.shape[0] == 0:
                 return pred_dict

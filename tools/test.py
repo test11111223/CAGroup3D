@@ -215,11 +215,11 @@ def main():
     )
 
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
-    #with torch.no_grad():
-    if args.eval_all:
-        repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=not dist_test)
-    else:
-        eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=not dist_test)
+    with torch.no_grad():
+        if args.eval_all:
+            repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=not dist_test)
+        else:
+            eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=not dist_test)
 
 
 if __name__ == '__main__':

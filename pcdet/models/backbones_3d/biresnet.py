@@ -177,7 +177,7 @@ class DAPPM(nn.Module):
     def forward(self, x):
         x_list = []
         x_coords = x.C.float()
-        me_device = None if is_cuda_available() else "cpu"
+        me_device = "cuda:0" if is_cuda_available() else "cpu"
 
         x_list.append(self.scale0(x))
 
@@ -361,7 +361,7 @@ class BiResNet(nn.Module):
         x = input_dict['sp_tensor']
         out_dict = dict()
         layers = []
-        me_device = None if is_cuda_available() else "cpu"
+        me_device = "cuda:0" if is_cuda_available() else "cpu"
 
         x = self.conv1(x) # 1
 
@@ -416,7 +416,7 @@ if __name__ == '__main__':
     #print(torch.cuda.is_available())
     from MinkowskiEngineBackend._C import is_cuda_available
     #print(is_cuda_available())
-    me_device = None if is_cuda_available() else "cpu"
+    me_device = "cuda:0" if is_cuda_available() else "cpu"
     f = torch.rand(2048, 3).float().cuda()
     c = torch.randint(-64, 64, (2048, 4)).cuda().float()
     c[:,0] = 0
