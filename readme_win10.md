@@ -1,6 +1,6 @@
 # Running CAGroup3D in Winodws 10 #
 
-![sunrgbd_3.JPG](./docs/cagroup3d/gallery/sunrgbd_3.JPG) *Detection from a "finetuned" model solely in Windows 10 PC.*
+![ScreenCapture_2023-04-08-23-47-01.png](./docs/cagroup3d/gallery/ScreenCapture_2023-04-08-23-47-01.png) *Detection from a "finetuned" model solely in Windows 10 PC.*
 
 ## Environments ##
 
@@ -67,21 +67,22 @@ conda install -c conda-forge matplotlib
 conda install -c conda-forge mayavi
 ```
 
-- MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package.
+- **CPU only** MinkowskiEngine is troublesome. Head to [this git issue](https://github.com/NVIDIA/MinkowskiEngine/issues/530) and download [the windows package](https://github.com/NVIDIA/MinkowskiEngine/files/10931944/MinkowskiEngine-0.5.4-py3.10-win-amd64.zip). If you're using non 3.10, you may need to manually make the package. **WSL2 is not working.**
 
 ```sh
 pip install ninja open3d
 pip install MinkowskiEngine-0.5.4-cp310-cp310-win_amd64.whl
 ```
-- **WSL2 is not working.**
+
+- **GPU support** Please check from teammate's great work: [His fork form this repo.](https://github.com/test11111223/CAGroup3D) [His tryhard mod of Minkowski Engine according to this repo.](https://github.com/test11111223/MinkowskiEngine). [PR to this repo](https://github.com/6DammK9/CAGroup3D/pull/1). **Read his guide to build the ME from scratch. It takes some time to do so.** Also, it only support **single GPU** at this moment (I'll try with dual GPU later). It does hardcode `cuda:0` becuase of CPP side issues.
 
 - Now it is good to clone. Final check:
 
 ```sh
-# Should return true
+# Should return True
 python -c "import torch; print(torch.cuda.is_available())"
-# Should also return true
-python -c "import MinkowskiEngine as ME; print(True)"
+# Should also return True (GPU ME) and False (CPU ME)
+python -c "import MinkowskiEngine as ME; from MinkowskiEngineBackend._C import is_cuda_available; print(is_cuda_available())"
 ```
 
 ## After cloning this repo ##
@@ -137,7 +138,7 @@ cd tools/
 #scannet
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7861 train.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --pretrained_model ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train-good/ckpt/checkpoint_epoch_8.pth --epochs 9 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-scannet-train --fix_random_seed > ../logs/train_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --pretrained_model ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_12.pth --epochs 13 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7862 train.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --pretrained_model ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_13.pth --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_13.pth --epochs 14 --ckpt_save_interval 1 --extra_tag cagroup3d-win10-sunrgbd-train --fix_random_seed > ../logs/train_sunrgbd.txt
 ```
 
 ## Hours for training ##
@@ -155,7 +156,7 @@ cd tools/
 #scannet
 torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7863 test.py --launcher pytorch --cfg_file cfgs/scannet_models/CAGroup3D.yaml --ckpt ../output/scannet_models/CAGroup3D/cagroup3d-win10-scannet-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-scannet-eval > ../logs/eval_scannet.txt
 #sunrgbd
-torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train/ckpt/checkpoint_epoch_1.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
+torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher pytorch --cfg_file cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../output/sunrgbd_models/CAGroup3D/cagroup3d-win10-sunrgbd-train-good/ckpt/checkpoint_epoch_13.pth --extra_tag cagroup3d-win10-sunrgbd-eval > ../logs/eval_sunrgbd.txt
 ```
 
 ## Hours for evaluation ##
@@ -169,12 +170,12 @@ torchrun --nproc_per_node=1 --rdzv_endpoint=localhost:7864 test.py --launcher py
 - Including our "epoch1" result, pretrained model from original author to validate our modified code, and potentially our "finetuned model" (`e8+1`, `e12+1`).
 
 |Task|`scannet-e1`|`sunrgbd-e1`|`scannet-e8`|`sunrgbd-e12`|`scannet-e9`|`sunrgbd-e13`|
-|---|---|---|---|---|
+|---|---|---|---|---|---|---|
 |Huggingface|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[Main repo](https://github.com/Haiyang-W/CAGroup3D#main-results)|[cagroup3d-win10-scannet](https://huggingface.co/6DammK9/cagroup3d-win10-scannet)|[cagroup3d-win10-sunrgbd](https://huggingface.co/6DammK9/cagroup3d-win10-sunrgbd)|
-|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|71.2267|DNF|
-|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|56.7902|DNF|
-|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|89.8917|DNF|
-|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|73.8451|DNF|
+|`mAP_0.25`|2.6154|4.3875|74.0403|65.9022|71.2267|65.8974|
+|`mAP_0.50`|0.1057|0.7867|61.2493|47.9277|56.7902|48.2091|
+|`mAR_0.25`|8.0527|7.8397|89.6589|93.2833|89.8917|93.6769|
+|`mAR_0.50`|0.7545|2.0583|76.1650|67.8665|73.8451|68.0411|
 
 ## Visualize data ##
 
@@ -204,7 +205,7 @@ python demo.py --cfg_file ../tools/cfgs/sunrgbd_models/CAGroup3D.yaml --ckpt ../
 
 - See the [gallery](./docs/cagroup3d/gallery) for details.
 
-![sunrgbd_6.JPG](./docs/cagroup3d/gallery/sunrgbd_6.JPG) *Example from SunRGBD*
+![ScreenCapture_2023-04-10-09-09-50.png](./docs/cagroup3d/gallery/ScreenCapture_2023-04-10-09-09-50.png) *Example from SunRGBD*
 
 ## Rants ##
 
@@ -232,5 +233,5 @@ x = ME.SparseTensor(coordinates=c, features=f, device=me_device)
 - Train from checkpoint. ~~Maybe have some spare time to train a few more EPs.~~ 1EP should be fesible since we don't need to change code.
 - Why the model cannot be eval? Somehow some raw data is in `ndarray` instead of `tensor`. However the upside is it is already in CPU.
 - Visualization / play with estimation. There is a `result.pkl` ~~without any explaination~~ via `pickle.dump`, *which is insufficient to visualize*. *Oh no* `demo.py` is another rabbit hole. Remade with `test.py` and it still crashes. ~~There is so many limitation from Open3D.~~
-- **TODO** Adding GPU support from teammate's great work: [His fork form this repo.](https://github.com/test11111223/CAGroup3D) [His tryhard mod of Minkowski Engine according to this repo.](https://github.com/test11111223/MinkowskiEngine). Note that **it is still in active development.**
+- Adding GPU support from teammate's great work: [His fork form this repo.](https://github.com/test11111223/CAGroup3D) [His tryhard mod of Minkowski Engine according to this repo.](https://github.com/test11111223/MinkowskiEngine). [PR-ed. Will test with CPU first](https://github.com/6DammK9/CAGroup3D/pull/1)
 - **TODO** Maybe export the detections to TensorBoard also. [Open3D for TensorBoard.](http://www.open3d.org/docs/latest/tutorial/visualization/tensorboard_plugin.html)

@@ -62,7 +62,9 @@ def parse_config():
 
 def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=False):
     # load checkpoint
-    model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test)
+    # dist_test has been hardcoded as False
+    to_cpu_flag = False if is_cuda_available() else True
+    model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=to_cpu_flag)
     # NOTE(lihe): debug!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # model.refresh_weights() # remember to remove this line!
     if is_cuda_available():
@@ -128,7 +130,8 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
         total_time = 0
         first_eval = False
 
-        model.load_params_from_file(filename=cur_ckpt, logger=logger, to_cpu=dist_test)
+        to_cpu_flag = False if is_cuda_available() else True
+        model.load_params_from_file(filename=cur_ckpt, logger=logger, to_cpu=to_cpu_flag)
         if is_cuda_available():
             model.cuda()
         else:
@@ -158,13 +161,14 @@ def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir
 def main():
     args, cfg = parse_config()
     if args.launcher == 'none':
-        dist_test = False
+        #dist_test = False
         total_gpus = 1
     else:
         total_gpus, cfg.LOCAL_RANK = getattr(common_utils, 'init_dist_%s' % args.launcher)(
             args.tcp_port, cfg.LOCAL_RANK, backend='gloo'
         )
-        dist_test = True
+        #dist_test = True    
+    dist_test = False
 
     if args.batch_size is None:
         args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU
@@ -195,6 +199,7 @@ def main():
     logger.info('**********************Start logging**********************')
     gpu_list = os.environ['CUDA_VISIBLE_DEVICES'] if 'CUDA_VISIBLE_DEVICES' in os.environ.keys() else 'ALL'
     logger.info('CUDA_VISIBLE_DEVICES=%s' % gpu_list)
+    logger.info('WINDOWS 10: dist_test has been disabled.')
 
     if dist_test:
         logger.info('total_batch_size: %d' % (total_gpus * args.batch_size))
@@ -217,10 +222,9 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
     with torch.no_grad():
         if args.eval_all:
-            repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=not dist_test)
+            repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=is_cuda_available())
         else:
-            eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=not dist_test)
-
+            eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=is_cuda_available())
 
 if __name__ == '__main__':
     main()

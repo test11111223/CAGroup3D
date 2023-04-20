@@ -390,7 +390,6 @@ class CAGroup3DHead(nn.Module):
             loss_sem.append(img_loss_sem)
             loss_vote.append(img_loss_vote)
         
-        print(loss_centerness)
         loss_centerness=torch.mean(torch.stack([t.to(me_device) for t in loss_centerness]))
         loss_bbox=torch.mean(torch.stack([t.to(me_device) for t in loss_bbox]))
         loss_cls=torch.mean(torch.stack([t.to(me_device) for t in loss_cls]))
