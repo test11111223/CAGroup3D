@@ -71,16 +71,16 @@ MODEL:
         USE_CENTER_POOLING: True
         LOSS_WEIGHTS:
             RCNN_CLS_WEIGHT: 1.0 # no use
-            RCNN_REG_WEIGHT: 0.5
+            RCNN_REG_WEIGHT: 1.0
             RCNN_IOU_WEIGHT: 1.0
             CODE_WEIGHT: [1., 1., 1., 1., 1., 1., 1., 1.]
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.25, 0.5]
-        EVAL_METRIC: scannet
+        EVAL_METRIC: sunrgbd
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 4 # 4x4 or 8x2
+    BATCH_SIZE_PER_GPU: 16 # 4x4 or 8x2
     NUM_EPOCHS: 1 #14
 
     OPTIMIZER: adamW 
